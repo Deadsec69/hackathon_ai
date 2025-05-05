@@ -1,0 +1,96 @@
+services:
+  prometheus:
+    build:
+      context: ./prometheus
+    ports:
+      - "9090:9090"
+    volumes:
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
+    networks:
+      - monitoring
+
+  grafana:
+    build:
+      context: ./grafana
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./grafana/provisioning:/etc/grafana/provisioning
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    networks:
+      - monitoring
+
+  mcp-base:
+    build:
+      context: ..
+      dockerfile: docker/mcp/Dockerfile.base
+    image: mcp-base
+    networks:
+      - monitoring
+
+  prometheus-mcp:
+    build:
+      context: ./mcp/prometheus
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8001"
+    environment:
+      - PROMETHEUS_URL=http://prometheus:9090
+    depends_on:
+      - prometheus
+      - mcp-base
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8001/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  grafana-mcp:
+    build:
+      context: ./mcp/grafana
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8002"
+    environment:
+      - GRAFANA_URL=http://grafana:3000
+      - GRAFANA_API_KEY=${GRAFANA_API_KEY:-admin}
+    depends_on:
+      - grafana
+      - mcp-base
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  github-mcp:
+    build:
+      context: ./mcp/github
+      dockerfile: Dockerfile
+    ports:
+      - "8003:8003"
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN:-your-github-token}
+      - GITHUB_OWNER=${GITHUB_OWNER:-your-github-username}
+      - GITHUB_REPO=${GITHUB_REPO:-your-repo-name}
+    depends_on:
+      - mcp-base
+    networks:
+      - monitoring
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8003/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+networks:
+  monitoring:
+    driver: bridge
