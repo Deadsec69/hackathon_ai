@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-app
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-app
+  template:
+    metadata:
+      labels:
+        app: test-app
+    spec:
+      containers:
+      - name: test-app
+        image: test-app:latest
+        resources:
+          limits:
+            memory: "512Mi"  # Increased memory limit
+            cpu: "500m"
+          requests:
+            memory: "256Mi"  # Increased memory request
+            cpu: "100m"
+        env:
+        - name: NODE_OPTIONS
+          value: "--max-old-space-size=256"  # Limit Node.js memory usage
