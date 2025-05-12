@@ -1,0 +1,25 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-app
+  namespace: default
+spec:
+  replicas: 2  # Increased replicas for better load distribution
+  selector:
+    matchLabels:
+      app: test-app
+  template:
+    metadata:
+      labels:
+        app: test-app
+    spec:
+      containers:
+      - name: test-app
+        image: test-app:latest
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "1000m"  # Increased CPU limit
+          requests:
+            memory: "128Mi"
+            cpu: "200m"  # Increased CPU request
