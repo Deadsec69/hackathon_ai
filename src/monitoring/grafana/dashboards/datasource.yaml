@@ -1,0 +1,14 @@
+apiVersion: 1
+
+# This file defines the mapping between the variable used in the dashboard (${DS_PROMETHEUS})
+# and the actual Prometheus data source in Grafana.
+# This approach is more flexible than hardcoding the UID, as it allows the dashboard to work
+# with any Prometheus data source, regardless of its UID.
+
+datasources:
+  - name: DS_PROMETHEUS
+    type: prometheus
+    # The default Prometheus data source will be used
+    # This is more flexible than hardcoding a specific UID
+    orgId: 1
+    default: true

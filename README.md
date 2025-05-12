@@ -1,155 +1,64 @@
-# AI Agent System for Application Monitoring
+# AI Agent for Kubernetes Monitoring and Self-Healing
 
-This system demonstrates an AI agent that monitors application health and takes automated remedial actions. It includes:
-
-- A sample application that exposes health metrics
-- A simulator to generate CPU and memory load
-- An AI agent that monitors and fixes issues
-- A chatbot interface for user interaction
-
-## Components
-
-1. **Application** (Port 5000, Metrics: 8080)
-   - Sample Flask application
-   - Exposes health metrics via Prometheus
-   - Provides admin endpoints for metric manipulation
-
-2. **Simulator** (Port 5002, Metrics: 8080)
-   - Generates CPU and memory load
-   - Exposes metrics via Prometheus
-   - Controlled through REST API
-
-3. **AI Agent** (Port 5003)
-   - Monitors application health
-   - Takes automated remedial actions
-   - Creates GitHub issues for persistent problems
-   - Adds Grafana annotations for actions taken
-
-4. **Chatbot Interface** (Port 8000)
-   - Web interface for user interaction
-   - Query system status and metrics
-   - Trigger simulations and fixes
-   - View incident history
-
-## Prerequisites
-
-- Python 3.12 or higher
-- tmux (for running multiple components)
-- pip (Python package manager)
-
-## Setup
-
-1. Clone the repository:
-   ```bash
-   git clone <repository-url>
-   cd <repository-name>
-   ```
-
-2. Create and activate virtual environment:
-   ```bash
-   python -m venv venv
-   source venv/bin/activate  # On Windows: venv\Scripts\activate
-   ```
-
-3. Install dependencies:
-   ```bash
-   pip install -r requirements.txt
-   ```
-
-4. Configure environment variables:
-   ```bash
-   cp .env.example .env
-   # Edit .env with your settings
-   ```
-
-## Running the System
-
-1. Make the setup script executable:
-   ```bash
-   chmod +x scripts/setup_local.sh
-   ```
-
-2. Run the setup script:
-   ```bash
-   ./scripts/setup_local.sh
-   ```
-
-This will start all components in separate tmux panes.
-
-## Testing the System
-
-1. Open the chatbot interface:
-   ```
-   http://localhost:8000
-   ```
-
-2. Open the admin interface:
-   ```
-   http://localhost:8000/admin
-   ```
-
-3. Test scenarios:
-
-   a. Simulate high CPU usage:
-   - Use the admin interface to set CPU load to 90%
-   - Watch the AI agent detect and fix the issue
-
-   b. Simulate high memory usage:
-   - Use the admin interface to set memory usage to 100MB
-   - Watch the AI agent detect and fix the issue
-
-   c. Chat interface:
-   - Ask about system status
-   - Request metrics
-   - Trigger simulations
-   - View incident history
-
-## Component URLs
-
-- Application: http://localhost:5000
-  - Health: http://localhost:5000/health
-  - Metrics: http://localhost:8080/metrics
-
-- Simulator: http://localhost:5002
-  - Metrics: http://localhost:8080/metrics
-
-- AI Agent: http://localhost:5003
-  - Health: http://localhost:5003/health
-  - Incidents: http://localhost:5003/incidents
-  - Restarts: http://localhost:5003/restarts
-
-- Chatbot Interface: http://localhost:8000
-  - Admin: http://localhost:8000/admin
+This project demonstrates an AI agent system that monitors applications running on Kubernetes, performs health checks, and implements automated fixes.
 
 ## Architecture
 
-```mermaid
-graph TD
-    A[Chatbot Interface] --> B[Application]
-    A --> C[Simulator]
-    A --> D[AI Agent]
-    D --> B
-    D --> C
-    B --> E[Prometheus]
-    C --> E
-    D --> E
+The system consists of the following components:
+
+1. **Test Application**: A simple application that can simulate CPU and memory spikes
+2. **Monitoring Stack**: Prometheus and Grafana for metrics collection and visualization
+3. **MCP Servers**: Model Context Protocol servers for Kubernetes, Prometheus, Grafana, and GitHub
+4. **AI Agent**: LangGraph-based agent using GPT-4o for decision making
+5. **Chat Interface**: Web UI for interacting with the agent and simulating issues
+
+## Workflow
+
+1. User simulates CPU/memory spike via chat interface
+2. Spike is logged in Grafana/Prometheus
+3. AI agent detects the spike
+4. Agent restarts the pod (up to 10 times per day)
+5. Agent creates a GitHub issue
+6. After 10 restarts in a day, agent analyzes code and creates a PR with suggested fixes
+
+## Directory Structure
+
+```
+.
+├── README.md
+├── docker-compose.yml
+├── requirements.txt
+└── src/
+    ├── agent/           # AI agent implementation using LangGraph
+    ├── api/             # FastAPI backend for the chat interface
+    ├── kubernetes/      # Kubernetes configuration files
+    ├── mcp/             # MCP server implementations/configurations
+    ├── monitoring/      # Prometheus and Grafana configuration
+    └── ui/              # Web UI for the chat interface
 ```
 
-## Metrics
+## Setup Instructions
 
-The system exposes the following metrics:
+1. Install dependencies:
+   ```
+   pip install -r requirements.txt
+   ```
 
-- `app_cpu_usage`: Application CPU usage (0-1)
-- `app_memory_usage`: Application memory usage (MB)
-- `app_health_status`: Application health status (0=unhealthy, 1=healthy)
-- `app_request_count`: Total request count
-- `simulator_cpu_usage`: Simulated CPU usage (0-1)
-- `simulator_memory_usage`: Simulated memory usage (MB)
+2. Start the local environment:
+   ```
+   docker-compose up -d
+   ```
 
-## Contributing
+3. Access the chat interface:
+   ```
+   http://localhost:8080
+   ```
 
-1. Fork the repository
-2. Create your feature branch
-3. Commit your changes
-4. Push to the branch
-5. Create a new Pull Request
+## Features
+
+- Simulate CPU and memory spikes
+- View real-time metrics in Grafana
+- Automatic pod restarts for issue remediation
+- GitHub issue creation for incident tracking
+- Intelligent PR creation for persistent issues
+- Incident history and query capabilities

@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Agent Chat Interface</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <div class="sidebar-header">
+                <h2>AI Agent Dashboard</h2>
+            </div>
+            <div class="sidebar-menu">
+                <button id="dashboardBtn" class="active"><i class="fas fa-chart-line"></i> Dashboard</button>
+                <button id="incidentsBtn"><i class="fas fa-exclamation-triangle"></i> Incidents</button>
+                <button id="simulateBtn"><i class="fas fa-flask"></i> Simulate</button>
+                <button id="settingsBtn"><i class="fas fa-cog"></i> Settings</button>
+            </div>
+            <div class="sidebar-footer">
+                <p>AI Agent v1.0.0</p>
+            </div>
+        </div>
+        <div class="main-content">
+            <div class="header">
+                <h1>AI Agent Chat Interface</h1>
+                <div class="status-indicator">
+                    <span id="statusDot" class="status-dot"></span>
+                    <span id="statusText">Connecting...</span>
+                </div>
+            </div>
+            
+            <!-- Dashboard View -->
+            <div id="dashboardView" class="view active">
+                <div class="dashboard-grid">
+                    <div class="dashboard-card">
+                        <h3>Agent Status</h3>
+                        <div class="agent-status">
+                            <div class="status-item">
+                                <span class="status-label">Running:</span>
+                                <span id="agentRunning" class="status-value">No</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Last Run:</span>
+                                <span id="agentLastRun" class="status-value">Never</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">Run Interval:</span>
+                                <span id="agentRunInterval" class="status-value">60s</span>
+                            </div>
+                        </div>
+                        <button id="runAgentBtn" class="action-button">Run Agent Now</button>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3>Recent Incidents</h3>
+                        <div id="recentIncidents" class="recent-incidents">
+                            <p>Loading incidents...</p>
+                        </div>
+                        <button id="viewAllIncidentsBtn" class="action-button">View All</button>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3>Restart Counts</h3>
+                        <div id="restartCounts" class="restart-counts">
+                            <p>Loading restart counts...</p>
+                        </div>
+                    </div>
+                    <div class="dashboard-card">
+                        <h3>Quick Actions</h3>
+                        <div class="quick-actions">
+                            <button id="simulateCpuBtn" class="action-button">Simulate CPU Spike</button>
+                            <button id="simulateMemoryBtn" class="action-button">Simulate Memory Spike</button>
+                            <button id="stopSimulationBtn" class="action-button">Stop Simulations</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Incidents View -->
+            <div id="incidentsView" class="view">
+                <div class="incidents-header">
+                    <h2>Incidents</h2>
+                    <div class="incidents-filters">
+                        <select id="incidentTypeFilter">
+                            <option value="">All Types</option>
+                            <option value="cpu">CPU</option>
+                            <option value="memory">Memory</option>
+                        </select>
+                        <select id="incidentStatusFilter">
+                            <option value="">All Statuses</option>
+                            <option value="false">Active</option>
+                            <option value="true">Resolved</option>
+                        </select>
+                        <button id="refreshIncidentsBtn" class="action-button">Refresh</button>
+                    </div>
+                </div>
+                <div id="incidentsList" class="incidents-list">
+                    <p>Loading incidents...</p>
+                </div>
+            </div>
+            
+            <!-- Simulate View -->
+            <div id="simulateView" class="view">
+                <div class="simulate-header">
+                    <h2>Simulate Issues</h2>
+                </div>
+                <div class="simulate-grid">
+                    <div class="simulate-card">
+                        <h3>CPU Spike</h3>
+                        <p>Simulate a CPU spike to test the agent's response.</p>
+                        <button id="simulateCpuBtnView" class="action-button">Simulate CPU Spike</button>
+                    </div>
+                    <div class="simulate-card">
+                        <h3>Memory Spike</h3>
+                        <p>Simulate a memory spike to test the agent's response.</p>
+                        <button id="simulateMemoryBtnView" class="action-button">Simulate Memory Spike</button>
+                    </div>
+                    <div class="simulate-card">
+                        <h3>Stop Simulations</h3>
+                        <p>Stop all running simulations.</p>
+                        <button id="stopSimulationBtnView" class="action-button">Stop Simulations</button>
+                    </div>
+                </div>
+                <div id="simulationStatus" class="simulation-status">
+                    <p>No simulations running.</p>
+                </div>
+            </div>
+            
+            <!-- Settings View -->
+            <div id="settingsView" class="view">
+                <div class="settings-header">
+                    <h2>Settings</h2>
+                </div>
+                <div class="settings-form">
+                    <div class="settings-group">
+                        <h3>Agent Settings</h3>
+                        <div class="settings-item">
+                            <label for="runIntervalInput">Run Interval (seconds)</label>
+                            <input type="number" id="runIntervalInput" min="10" value="60">
+                        </div>
+                        <div class="settings-item">
+                            <label for="maxRestartsInput">Max Restarts Per Day</label>
+                            <input type="number" id="maxRestartsInput" min="1" value="10">
+                        </div>
+                        <div class="settings-item">
+                            <label for="analysisThresholdInput">Analysis Threshold</label>
+                            <input type="number" id="analysisThresholdInput" min="1" value="10">
+                        </div>
+                    </div>
+                    <div class="settings-group">
+                        <h3>Thresholds</h3>
+                        <div class="settings-item">
+                            <label for="cpuThresholdInput">CPU Threshold (%)</label>
+                            <input type="number" id="cpuThresholdInput" min="1" max="100" value="80">
+                        </div>
+                        <div class="settings-item">
+                            <label for="memoryThresholdInput">Memory Threshold (%)</label>
+                            <input type="number" id="memoryThresholdInput" min="1" max="100" value="80">
+                        </div>
+                    </div>
+                    <button id="saveSettingsBtn" class="action-button">Save Settings</button>
+                </div>
+            </div>
+            
+            <div class="chat-container">
+                <div id="chatMessages" class="chat-messages"></div>
+                <div class="chat-input">
+                    <input type="text" id="messageInput" placeholder="Type a message...">
+                    <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,162 @@
+services:
+  # Test Application
+  test-app:
+    build:
+      context: ./src/api
+      dockerfile: Dockerfile
+    ports:
+      - "8001:8000"  # Changed from 8000:8000 to avoid conflict
+      - "8003:8001"  # Expose Prometheus metrics port
+    networks:
+      - app-network
+
+  # Prometheus
+  prometheus:
+    image: prom/prometheus:v2.45.0
+    volumes:
+      - ./src/monitoring/prometheus:/etc/prometheus
+      - prometheus-data:/prometheus
+    ports:
+      - "9090:9090"
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+    depends_on:
+      - test-app
+    networks:
+      - app-network
+
+  # Grafana
+  grafana:
+    image: grafana/grafana:10.1.0
+    volumes:
+      - ./src/monitoring/grafana:/etc/grafana/provisioning
+      - grafana-data:/var/lib/grafana
+    ports:
+      - "3000:3000"
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=admin
+      - GF_USERS_ALLOW_SIGN_UP=false
+    depends_on:
+      - prometheus
+    networks:
+      - app-network
+
+  # MCP Servers
+  kubernetes-mcp:
+    build:
+      context: ./src/mcp/kubernetes
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      - TEST_APP_URL=http://test-app:8000
+    depends_on:
+      - test-app
+    networks:
+      - app-network
+    restart: on-failure
+
+  prometheus-mcp:
+    build:
+      context: ./src/mcp/prometheus
+      dockerfile: Dockerfile
+    ports:
+      - "5002:5002"
+    environment:
+      - PROMETHEUS_URL=http://prometheus:9090
+    depends_on:
+      - prometheus
+    networks:
+      - app-network
+
+  grafana-mcp:
+    build:
+      context: ./src/mcp/grafana
+      dockerfile: Dockerfile
+    ports:
+      - "5003:5003"
+    environment:
+      - GRAFANA_URL=http://grafana:3000
+      - GRAFANA_API_KEY=admin:admin
+    depends_on:
+      - grafana
+    networks:
+      - app-network
+    restart: on-failure
+
+  github-mcp:
+    build:
+      context: ./src/mcp/github
+      dockerfile: Dockerfile
+    ports:
+      - "5004:5004"
+    environment:
+      - GITHUB_TOKEN=${GITHUB_TOKEN}
+    env_file:
+      - .env
+    networks:
+      - app-network
+
+  # AI Agent
+  agent:
+    build:
+      context: ./src/agent
+      dockerfile: Dockerfile
+    ports:
+      - "8002:8000"  # Changed from 5000 to 8000
+    environment:
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - KUBERNETES_MCP_URL=http://kubernetes-mcp:5001
+      - PROMETHEUS_MCP_URL=http://prometheus-mcp:5002
+      - GRAFANA_MCP_URL=http://grafana-mcp:5003
+      - GITHUB_MCP_URL=http://github-mcp:5004
+    depends_on:
+      - kubernetes-mcp
+      - prometheus-mcp
+      - grafana-mcp
+      - github-mcp
+    env_file:
+      - .env
+    networks:
+      - app-network
+
+  # API Backend (for test application)
+  api:
+    build:
+      context: ./src/api
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"  # Main API endpoint
+    environment:
+      - AGENT_URL=http://agent:8000
+    networks:
+      - app-network
+    depends_on:
+      - agent
+    env_file:
+      - .env
+
+  # Chat Interface
+  ui:
+    build:
+      context: ./src/ui
+      dockerfile: Dockerfile
+    ports:
+      - "8080:8080"
+    environment:
+      - API_URL=http://agent:8000  # Point directly to agent service
+    networks:
+      - app-network
+    depends_on:
+      - agent
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  prometheus-data:
+  grafana-data:
