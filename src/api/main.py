@@ -219,7 +219,13 @@ async def root():
 
 @app.get("/health", response_model=Dict[str, str])
 async def health():
-    return {"status": "ok"}
+    # Check if any simulation is active
+    if cpu_spike_active:
+        return {"status": "degraded", "message": "High CPU load detected"}
+    elif memory_spike_active:
+        return {"status": "degraded", "message": "High memory usage detected"}
+    else:
+        return {"status": "ok"}
 
 @app.post("/admin/shutdown", response_model=Dict[str, str])
 async def shutdown():
@@ -252,6 +258,9 @@ async def trigger_cpu_spike(request: CPUSpikeRequest = None):
     if cpu_spike_active:
         raise HTTPException(status_code=400, detail="CPU spike already in progress")
     
+    # Set the flag before starting the thread
+    cpu_spike_active = True
+    
     # Start CPU spike in a separate thread
     threading.Thread(target=simulate_cpu_spike, daemon=True).start()
     
@@ -266,6 +275,9 @@ async def trigger_memory_spike():
     
     if memory_spike_active:
         raise HTTPException(status_code=400, detail="Memory spike already in progress")
+    
+    # Set the flag before starting the thread
+    memory_spike_active = True
     
     # Start memory spike in a separate thread
     threading.Thread(target=simulate_memory_spike, daemon=True).start()

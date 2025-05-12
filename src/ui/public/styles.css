@@ -158,10 +158,93 @@ body {
     margin-right: 5px;
 }
 
-.recent-incidents, .restart-counts {
+.recent-incidents, .restart-counts, .agent-logs {
     max-height: 200px;
     overflow-y: auto;
     margin-bottom: 15px;
+}
+
+/* Agent logs styles */
+.log-entry {
+    padding: 5px;
+    margin-bottom: 5px;
+    border-left: 3px solid #ddd;
+    font-family: monospace;
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.log-entry.info {
+    border-left-color: #2196F3;
+    background-color: #E3F2FD;
+}
+
+.log-entry.warning {
+    border-left-color: #FF9800;
+    background-color: #FFF3E0;
+}
+
+.log-entry.error {
+    border-left-color: #F44336;
+    background-color: #FFEBEE;
+}
+
+.log-entry.debug {
+    border-left-color: #9E9E9E;
+    background-color: #F5F5F5;
+}
+
+/* Special log entry themes */
+.log-entry.remediation {
+    border-left-color: #F44336;
+    background-color: #FFEBEE;
+    color: #B71C1C;
+    font-weight: bold;
+}
+
+.log-entry.completion {
+    border-left-color: #4CAF50;
+    background-color: #E8F5E9;
+    color: #2E7D32;
+    font-weight: bold;
+}
+
+/* No animations for new logs */
+
+.log-timestamp {
+    color: #666;
+    margin-right: 8px;
+}
+
+.log-component {
+    color: #2196F3;
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.log-level {
+    font-weight: bold;
+    margin-right: 8px;
+}
+
+.log-level.info {
+    color: #0D47A1;
+}
+
+.log-level.warning {
+    color: #E65100;
+}
+
+.log-level.error {
+    color: #B71C1C;
+}
+
+.log-level.debug {
+    color: #424242;
+}
+
+.log-message {
+    color: #333;
 }
 
 .quick-actions {
@@ -428,11 +511,24 @@ body {
     border-radius: 4px;
     padding: 8px 15px;
     cursor: pointer;
-    transition: background-color 0.3s;
+    transition: all 0.3s;
 }
 
 .action-button:hover {
     background-color: #2980b9;
+}
+
+.action-button:active {
+    transform: scale(0.98);
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+.action-button:disabled {
+    background-color: #bdc3c7;
+    color: #7f8c8d;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
 }
 
 /* Severity badges */

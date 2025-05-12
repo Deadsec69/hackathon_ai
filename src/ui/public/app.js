@@ -19,10 +19,11 @@ const simulateView = document.getElementById('simulateView');
 const settingsView = document.getElementById('settingsView');
 
 // Dashboard elements
-const agentRunning = document.getElementById('agentRunning');
-const agentLastRun = document.getElementById('agentLastRun');
-const agentRunInterval = document.getElementById('agentRunInterval');
-const runAgentBtn = document.getElementById('runAgentBtn');
+const apiHealth = document.getElementById('apiHealth');
+const agentHealth = document.getElementById('agentHealth');
+const prometheusHealth = document.getElementById('prometheusHealth');
+const grafanaHealth = document.getElementById('grafanaHealth');
+const lastHealthCheck = document.getElementById('lastHealthCheck');
 const recentIncidents = document.getElementById('recentIncidents');
 const viewAllIncidentsBtn = document.getElementById('viewAllIncidentsBtn');
 const restartCounts = document.getElementById('restartCounts');
@@ -59,11 +60,42 @@ socket.on('connect', () => {
     loadAgentStatus();
     loadIncidents();
     loadRestartCounts();
+    
+    // Add welcome message
+    addMessage('system', 'Welcome to the Kubernetes Monitoring Assistant! I can help you monitor your applications, simulate issues, and manage your Kubernetes cluster. Type "help" to see what I can do.');
 });
 
 socket.on('disconnect', () => {
     statusDot.classList.remove('connected');
     statusText.textContent = 'Disconnected';
+});
+
+// Handle server status updates
+socket.on('server_status', (status) => {
+    // Add server status message to chat
+    addMessage('system', status.content);
+    
+    // If it's a success message about server restart, refresh health checks
+    if (status.type === 'success' && status.content.includes('restart')) {
+        // Wait a moment for services to be fully up
+        setTimeout(() => {
+            checkServicesHealth();
+            loadIncidents();
+            loadRestartCounts();
+        }, 1000);
+    }
+});
+
+// Handle simulation status updates
+socket.on('simulation_status_update', (status) => {
+    // Update the simulation status in the UI
+    if (status.type === 'all' && status.status === 'stopped') {
+        // All simulations stopped
+        simulationStatus.innerHTML = `<p>${status.message}</p>`;
+    } else {
+        // CPU or memory simulation status update
+        simulationStatus.innerHTML = `<p>${status.type.toUpperCase()} simulation: ${status.message}</p>`;
+    }
 });
 
 // Chat message handling
@@ -147,28 +179,204 @@ function switchView(view) {
     }
 }
 
-// Agent status
-function loadAgentStatus() {
-    fetch('/api/agent/status')
+// Services health check
+function checkServicesHealth() {
+    // Check API health using status API
+    fetch('/api/status')
         .then(response => response.json())
         .then(data => {
-            agentRunning.textContent = data.running ? 'Yes' : 'No';
-            agentLastRun.textContent = data.last_run_time ? new Date(data.last_run_time * 1000).toLocaleString() : 'Never';
-            agentRunInterval.textContent = `${data.run_interval}s`;
+            console.log('API status check response:', data);
+            // API is healthy if CPU usage is below 10% and memory usage is below 50,000,000 bytes
+            const isHealthy = data.cpu_usage <= 10 && data.memory_usage <= 50000000 && 
+                             !data.cpu_spike_active && !data.memory_spike_active;
+            updateServiceHealth(apiHealth, isHealthy);
+            
+            // Update simulation buttons based on API health and simulation status
+            updateSimulationButtons(isHealthy, data.cpu_spike_active || data.memory_spike_active);
         })
         .catch(error => {
-            console.error('Error loading agent status:', error);
+            console.error('API status check error:', error);
+            updateServiceHealth(apiHealth, false);
+            
+            // Disable simulation buttons when API is unreachable
+            updateSimulationButtons(false, false);
+        });
+    
+    // Check Agent health
+    fetch('/api/agent/health')
+        .then(response => {
+            updateServiceHealth(agentHealth, response.ok);
+        })
+        .catch(() => {
+            updateServiceHealth(agentHealth, false);
+        });
+    
+    // Check Prometheus health
+    fetch('/api/prometheus/health')
+        .then(response => {
+            updateServiceHealth(prometheusHealth, response.ok);
+        })
+        .catch(() => {
+            updateServiceHealth(prometheusHealth, false);
+        });
+    
+    // Check Grafana health
+    fetch('/api/grafana/health')
+        .then(response => {
+            updateServiceHealth(grafanaHealth, response.ok);
+        })
+        .catch(() => {
+            updateServiceHealth(grafanaHealth, false);
+        });
+    
+    // Update last check time
+    lastHealthCheck.textContent = new Date().toLocaleString();
+    
+    // No need to schedule next check here as it's handled in loadAgentStatus
+}
+
+function updateServiceHealth(element, isHealthy) {
+    const statusDot = element.querySelector('.status-dot');
+    if (isHealthy) {
+        statusDot.classList.add('connected');
+        element.textContent = '';
+        element.appendChild(statusDot);
+        element.appendChild(document.createTextNode(' Healthy'));
+    } else {
+        statusDot.classList.remove('connected');
+        element.textContent = '';
+        element.appendChild(statusDot);
+        element.appendChild(document.createTextNode(' Unhealthy'));
+    }
+}
+
+// Agent status
+function loadAgentStatus() {
+    // Start health checks
+    checkServicesHealth();
+    
+    // Start periodic data updates
+    loadRecentIncidents();
+    loadRestartCounts();
+    loadAgentLogs();
+    
+    // Schedule periodic data updates with different intervals
+    
+    // Refresh logs more frequently (every 2 seconds)
+    setInterval(() => {
+        loadAgentLogs();
+    }, 2000);
+    
+    // Refresh other data less frequently
+    setInterval(() => {
+        checkServicesHealth();
+        loadRecentIncidents();
+        loadRestartCounts();
+    }, 5000);
+}
+
+// Load agent logs
+function loadAgentLogs() {
+    fetch('/api/agent/logs')
+        .then(response => response.json())
+        .then(data => {
+            displayAgentLogs(data.logs);
+        })
+        .catch(error => {
+            console.error('Error loading agent logs:', error);
+            document.getElementById('agentLogs').innerHTML = '<p>Error loading agent logs</p>';
         });
 }
 
-runAgentBtn.addEventListener('click', () => {
-    socket.emit('run agent');
-});
+// Keep track of the logs we've already displayed
+let displayedLogIds = new Set();
+
+function displayAgentLogs(logs) {
+    const agentLogsElement = document.getElementById('agentLogs');
+    
+    if (!logs || logs.length === 0) {
+        agentLogsElement.innerHTML = '<p>No logs available</p>';
+        displayedLogIds.clear();
+        return;
+    }
+    
+    // Sort logs by timestamp (newest first)
+    logs.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+    
+    // If this is the first time displaying logs, clear the container
+    if (displayedLogIds.size === 0) {
+        agentLogsElement.innerHTML = '';
+    }
+    
+    // Check for new logs and add them to the display
+    let newLogsAdded = false;
+    
+    logs.forEach(log => {
+        // Create a unique ID for this log based on timestamp and message
+        const logId = `${log.timestamp}-${log.message}`;
+        
+        // Only add logs we haven't displayed yet
+        if (!displayedLogIds.has(logId)) {
+            displayedLogIds.add(logId);
+            newLogsAdded = true;
+            
+            const timestamp = new Date(log.timestamp).toLocaleString();
+            const levelClass = log.level.toLowerCase();
+            const component = log.component || 'agent';
+            const message = log.message || '';
+            
+            // Determine if this log should have a special theme
+            let specialClass = '';
+            if (message.includes('Remed') || message.includes('remed')) {
+                specialClass = 'remediation';
+            } else if (message.includes('Agent run completed')) {
+                specialClass = 'completion';
+            }
+            
+            // Create the log entry element
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${levelClass} ${specialClass}`;
+            logEntry.innerHTML = `
+                <span class="log-timestamp">${timestamp}</span>
+                <span class="log-component">${component}</span>
+                <span class="log-level">${log.level}</span>
+                <span class="log-message">${message}</span>
+            `;
+            
+            // Add the new log entry at the top of the list
+            if (agentLogsElement.firstChild) {
+                agentLogsElement.insertBefore(logEntry, agentLogsElement.firstChild);
+            } else {
+                agentLogsElement.appendChild(logEntry);
+            }
+        }
+    });
+    
+    // If we have too many displayed logs, remove the oldest ones
+    const maxDisplayedLogs = 50;
+    if (displayedLogIds.size > maxDisplayedLogs) {
+        // Get all log entries
+        const logEntries = agentLogsElement.querySelectorAll('.log-entry');
+        
+        // Remove the oldest log entries
+        for (let i = maxDisplayedLogs; i < logEntries.length; i++) {
+            agentLogsElement.removeChild(logEntries[i]);
+        }
+        
+        // Update the set of displayed log IDs
+        displayedLogIds = new Set(Array.from(displayedLogIds).slice(0, maxDisplayedLogs));
+    }
+}
+
+// Load recent incidents
+function loadRecentIncidents() {
+    // Get the 5 most recent incidents
+    socket.emit('get incidents', { limit: 5 });
+}
 
 socket.on('agent response', (response) => {
     if (response.type === 'success') {
         addMessage('action', response.content);
-        loadAgentStatus();
     } else {
         addMessage('error', response.content);
     }
@@ -363,6 +571,31 @@ function displayRestartCounts(counts) {
     });
 }
 
+// Update simulation buttons based on API health and simulation status
+function updateSimulationButtons(isApiHealthy, isSimulationRunning) {
+    // Get all simulation buttons
+    const simulationButtons = [
+        simulateCpuBtn,
+        simulateMemoryBtn,
+        simulateCpuBtnView,
+        simulateMemoryBtnView,
+        stopSimulationBtn,
+        stopSimulationBtnView
+    ];
+    
+    // Disable CPU and Memory simulation buttons when API is unhealthy or a simulation is running
+    simulateCpuBtn.disabled = !isApiHealthy || isSimulationRunning;
+    simulateMemoryBtn.disabled = !isApiHealthy || isSimulationRunning;
+    simulateCpuBtnView.disabled = !isApiHealthy || isSimulationRunning;
+    simulateMemoryBtnView.disabled = !isApiHealthy || isSimulationRunning;
+    
+    // Always enable Restart Pod buttons
+    stopSimulationBtn.disabled = false;
+    stopSimulationBtnView.disabled = false; // Always enable the view button too
+    
+    console.log(`Simulation buttons updated: API Healthy=${isApiHealthy}, Simulation Running=${isSimulationRunning}`);
+}
+
 // Simulate issues
 function simulateIssue(type) {
     socket.emit('simulate issue', { issue_type: type });
@@ -384,6 +617,26 @@ socket.on('simulation response', (response) => {
     if (response.type === 'success') {
         simulationStatus.innerHTML = `<p>${response.content}</p>`;
         addMessage('action', response.content);
+        
+        // Check if this is a start or stop simulation response
+        const isStarting = response.content.includes('started');
+        const isStopping = response.content.includes('stopped');
+        
+        // Update button states based on simulation status
+        if (isStarting || isStopping) {
+            // Fetch the latest status to update button states
+            fetch('/api/status')
+                .then(response => response.json())
+                .then(data => {
+                    const isSimulationRunning = data.cpu_spike_active || data.memory_spike_active;
+                    const isApiHealthy = data.cpu_usage <= 10 && data.memory_usage <= 50000000 && 
+                                        !data.cpu_spike_active && !data.memory_spike_active;
+                    updateSimulationButtons(isApiHealthy, isSimulationRunning);
+                })
+                .catch(error => {
+                    console.error('Error updating button states:', error);
+                });
+        }
     } else {
         simulationStatus.innerHTML = `<p class="error">${response.content}</p>`;
         addMessage('error', response.content);

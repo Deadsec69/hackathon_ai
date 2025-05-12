@@ -2,6 +2,7 @@ import os
 import json
 import time
 import asyncio
+import logging
 from typing import Dict, List, Any, Optional, Union
 from fastapi import FastAPI, HTTPException, Request, BackgroundTasks
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +11,33 @@ from dataclasses import asdict
 
 from agent import run_agent, get_incidents, get_restart_counts
 from incident_store import incident_store, Incident
+
+# Get the agent logger
+logger = logging.getLogger("agent")
+
+# Create a custom handler to store logs in memory
+class MemoryLogHandler(logging.Handler):
+    def __init__(self, max_logs=100):
+        super().__init__()
+        self.logs = []
+        self.max_logs = max_logs
+    
+    def emit(self, record):
+        log_entry = {
+            "timestamp": record.created,
+            "component": record.name,
+            "level": record.levelname,
+            "message": record.getMessage()
+        }
+        self.logs.append(log_entry)
+        
+        # Keep only the most recent logs
+        if len(self.logs) > self.max_logs:
+            self.logs = self.logs[-self.max_logs:]
+
+# Create and add the memory handler to the agent logger
+memory_handler = MemoryLogHandler()
+logger.addHandler(memory_handler)
 
 # Initialize FastAPI app
 app = FastAPI(title="AI Agent API", description="API for the AI agent")
@@ -261,6 +289,22 @@ async def api_stop_simulation():
 async def health():
     """Health check endpoint"""
     return {"status": "ok"}
+
+@app.get("/api/logs")
+async def api_get_logs(limit: Optional[int] = None):
+    """Get agent logs"""
+    logs = memory_handler.logs
+    
+    # Sort logs by timestamp (newest first)
+    logs = sorted(logs, key=lambda x: x["timestamp"], reverse=True)
+    
+    # Limit the number of logs if requested
+    if limit and limit > 0:
+        logs = logs[:limit]
+    
+    return {
+        "logs": logs
+    }
 
 @app.get("/")
 async def root():
