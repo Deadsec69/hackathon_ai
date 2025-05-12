@@ -45,8 +45,9 @@ if not anthropic_api_key:
 # Constants
 MAX_RESTARTS_PER_DAY = int(os.environ.get("MAX_RESTARTS_PER_DAY", "10"))
 ANALYSIS_THRESHOLD = int(os.environ.get("ANALYSIS_THRESHOLD", "4"))
+# ANALYSIS_THRESHOLD = 1
 CPU_THRESHOLD = 10  # CPU usage percentage threshold (lowered to 10% for testing)
-MEMORY_THRESHOLD = 80  # Memory usage percentage threshold
+MEMORY_THRESHOLD = 500 * 1024 * 1024  # Memory threshold in bytes (500 MB)
 
 # State definition
 class AgentState(TypedDict):
@@ -201,13 +202,16 @@ def analyze_metrics(state: AgentState) -> AgentState:
     
     # Check memory usage
     for memory_metric in memory_metrics:
-        # Convert bytes to percentage (assuming 1GB = 100%)
-        memory_value = memory_metric["value"] / (1024 * 1024 * 1024) * 100
+        # Get memory value in bytes
+        memory_value = memory_metric["value"]
         
-        logger.info(f"Checking memory metric: {json.dumps(memory_metric)}, value: {memory_value}%")
+        # Calculate percentage for logging (assuming 1GB = 100%)
+        memory_percent = memory_value / (1024 * 1024 * 1024) * 100
+        
+        logger.info(f"Checking memory metric: {json.dumps(memory_metric)}, value: {memory_value} bytes ({memory_percent:.2f}%)")
         
         if memory_value > MEMORY_THRESHOLD:
-            logger.info(f"Memory usage {memory_value}% exceeds threshold {MEMORY_THRESHOLD}%")
+            logger.info(f"Memory usage {memory_value} bytes exceeds threshold {MEMORY_THRESHOLD} bytes")
             pod_name = memory_metric["metric"].get("instance", "unknown")
             namespace = "default"
             
@@ -485,9 +489,25 @@ def analyze_code(state: AgentState) -> AgentState:
         logs = logs_result.get("logs", "")
         logger.info(f"Retrieved {len(logs)} bytes of logs")
         
-        # Use LLM to analyze logs and suggest a fix
-        analysis_prompt = ChatPromptTemplate.from_template("""
-        You are an AI agent tasked with analyzing logs and suggesting fixes for Kubernetes pods.
+        # Get application code using the Kubernetes MCP server
+        logger.info("Getting application code using Kubernetes MCP server")
+        app_code = ""
+        try:
+            # Use the Kubernetes MCP server to get the application code
+            app_code_result = mcp_manager.use_tool("kubernetes", "get_app_code", {
+                "namespace": namespace,
+                "pod_name": pod_name
+            })
+            
+            app_code = app_code_result.get("code", "")
+            logger.info(f"Retrieved {len(app_code)} bytes of application code")
+        except Exception as e:
+            logger.error(f"Error getting application code: {str(e)}")
+            app_code = "# Error: Could not retrieve application code"
+        
+        # Step 1: Use LLM to generate the code fix as plain text
+        code_fix_prompt = ChatPromptTemplate.from_template("""
+        You are an AI agent tasked with analyzing logs, application code, and providing complete code fixes for Kubernetes pods.
         
         # Issue Information
         - Pod Name: {pod_name}
@@ -500,32 +520,89 @@ def analyze_code(state: AgentState) -> AgentState:
         {logs}
         ```
         
+        # Application Code
+        ```python
+        {app_code}
+        ```
+        
         # Task
-        1. Analyze the logs to identify patterns or issues that might be causing high {issue_type} usage
-        2. Suggest a specific code fix or configuration change that could resolve the issue
-        3. Format your response as a JSON object with the following fields:
-           - "analysis": Your analysis of the logs and the issue
-           - "fix_description": A description of the proposed fix
-           - "fix_code": The actual code or configuration change (if applicable)
-           - "fix_file": The file that needs to be modified (if applicable)
+        1. Analyze the logs and application code to identify patterns or issues that might be causing high {issue_type} usage
+        2. Provide a COMPLETE code fix that resolves the issue
+        3. Your response should ONLY include the ENTIRE function or class that needs to be modified, with all the changes implemented
+        4. Do not include any explanations, JSON formatting, or anything else - ONLY the complete updated code for the function/class
+        
+        IMPORTANT: Include the ENTIRE function or class that needs to be modified, not just the changes.
+        For example, if you're modifying a function, include the entire function definition and body.
+        
+        Respond with ONLY the complete updated code, nothing else.
+        """)
+        
+        logger.info("Step 1: Generating code fix with LLM")
+        code_fix_chain = code_fix_prompt | llm | StrOutputParser()
+        
+        code_fix_result = code_fix_chain.invoke({
+            "pod_name": pod_name,
+            "namespace": namespace,
+            "issue_type": issue_type,
+            "logs": logs,
+            "app_code": app_code
+        })
+        
+        logger.info(f"Code fix generated: {len(code_fix_result)} bytes")
+        code_fix_result = code_fix_result.replace("```","").replace("python","")
+        logger.info(f"Code fix generated: {code_fix_result} ")
+        # Step 2: Use LLM to analyze and format the response with the code fix
+        analysis_prompt = ChatPromptTemplate.from_template("""
+        You are an AI agent tasked with analyzing logs, application code, and providing complete code fixes for Kubernetes pods.
+        
+        # Issue Information
+        - Pod Name: {pod_name}
+        - Namespace: {namespace}
+        - Issue Type: {issue_type} (high usage)
+        - This pod has been restarted multiple times today due to high {issue_type} usage
+        
+        # Pod Logs
+        ```
+        {logs}
+        ```
+        
+        # Application Code
+        ```python
+        {app_code}
+        ```
+        
+        # Generated Code Fix
+        ```python
+        {code_fix}
+        ```
+        
+        # Task
+        1. Analyze the logs, application code, and the generated code fix
+        2. Format your response as a JSON object with the following fields:
+           - "analysis": Your detailed analysis of the logs, code, and the issue
+           - "fix_description": A clear description of the proposed fix
+           - "fix_code": The COMPLETE code fix (use the generated code fix provided above)
+           - "fix_file": The file that needs to be modified (e.g., "main.py")
            - "pr_title": A title for the pull request
            - "pr_body": A detailed description for the pull request
         
         Respond with only the JSON object, no additional text.
         """)
         
-        logger.info("Analyzing logs with LLM")
+        logger.info("Step 2: Analyzing and formatting response with LLM")
         analysis_chain = analysis_prompt | llm | StrOutputParser()
         
         analysis_result = analysis_chain.invoke({
             "pod_name": pod_name,
             "namespace": namespace,
             "issue_type": issue_type,
-            "logs": logs
+            "logs": logs,
+            "app_code": app_code,
+            "code_fix": code_fix_result
         })
         
-        logger.info(f"LLM analysis result: {analysis_result}")
-        
+        logger.info(f"Analysis result: {len(analysis_result)} bytes")
+        logger.info(f"Analysis result: {analysis_result}")
         # Parse the analysis result
         try:
             analysis_data = json.loads(analysis_result)
@@ -535,7 +612,7 @@ def analyze_code(state: AgentState) -> AgentState:
             analysis_data = {
                 "analysis": "Failed to parse analysis result",
                 "fix_description": "Unknown",
-                "fix_code": "Unknown",
+                "fix_code": None,
                 "fix_file": "Unknown",
                 "pr_title": f"Fix high {issue_type} usage in {pod_name}",
                 "pr_body": "Failed to generate PR body"

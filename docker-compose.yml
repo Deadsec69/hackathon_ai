@@ -138,6 +138,7 @@ services:
       - agent
     env_file:
       - .env
+    restart: always  # Add restart policy to automatically restart the container when it exits
 
   # Chat Interface
   ui:
