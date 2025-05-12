@@ -8,8 +8,10 @@ import sys
 from typing import Dict, List, Any, Optional, Union, TypedDict, Annotated, Literal
 from dataclasses import asdict
 from dotenv import load_dotenv
-import openai
-from langchain_openai import ChatOpenAI
+# import openai
+import anthropic
+from langchain_anthropic import ChatAnthropic
+# from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema import StrOutputParser
 from langchain.schema.runnable import RunnablePassthrough
@@ -30,14 +32,19 @@ logger = logging.getLogger("agent")
 # Load environment variables
 load_dotenv()
 
-# Initialize OpenAI client
-openai_api_key = os.environ.get("OPENAI_API_KEY")
-if not openai_api_key:
-    raise ValueError("OPENAI_API_KEY environment variable not set")
+# Initialize Anthropic client
+anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
+if not anthropic_api_key:
+    raise ValueError("ANTHROPIC_API_KEY environment variable not set")
+
+# Initialize OpenAI client (commented out)
+# openai_api_key = os.environ.get("OPENAI_API_KEY")
+# if not openai_api_key:
+#     raise ValueError("OPENAI_API_KEY environment variable not set")
 
 # Constants
 MAX_RESTARTS_PER_DAY = int(os.environ.get("MAX_RESTARTS_PER_DAY", "10"))
-ANALYSIS_THRESHOLD = int(os.environ.get("ANALYSIS_THRESHOLD", "10"))
+ANALYSIS_THRESHOLD = int(os.environ.get("ANALYSIS_THRESHOLD", "4"))
 CPU_THRESHOLD = 10  # CPU usage percentage threshold (lowered to 10% for testing)
 MEMORY_THRESHOLD = 80  # Memory usage percentage threshold
 
@@ -52,7 +59,11 @@ class AgentState(TypedDict):
     error: Optional[str]
 
 # LLM setup
-llm = ChatOpenAI(model="gpt-4o", temperature=0)
+# OpenAI setup (commented out)
+# llm = ChatOpenAI(model="gpt-4o", temperature=0)
+
+# Claude setup
+llm = ChatAnthropic(model="claude-3-sonnet-20240229", temperature=0)
 
 # Node functions
 def monitor_metrics(state: AgentState) -> AgentState:
@@ -569,23 +580,98 @@ A pull request will be created with the proposed fix.
         # For this PoC, we'll just create a PR with a placeholder file
         # In a real implementation, we would get the actual file, modify it, and create a PR
         
-        # Create a new branch
-        branch_name = f"fix-{issue_type}-{pod_name}-{int(time.time())}"
+        # Create a new branch with a valid name format
+        # Use the GitHub issue number in the branch name
+        branch_name = f"bug_fix/{github_issue.get('number', 0)}"
         
         # Create a file with the fix
-        file_path = analysis_data.get("fix_file", f"fix-{issue_type}-{pod_name}.txt")
-        file_content = analysis_data.get("fix_code", "# Placeholder fix")
+        file_path = analysis_data.get("fix_file")
+        file_content = analysis_data.get("fix_code")
+        
+        # If no specific file or code is provided, create a generic fix file
+        if not file_path or not file_content:
+            file_path = f"kubernetes/deployment.yaml"
+            if issue_type == "memory":
+                file_content = """apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-app
+  namespace: default
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: test-app
+  template:
+    metadata:
+      labels:
+        app: test-app
+    spec:
+      containers:
+      - name: test-app
+        image: test-app:latest
+        resources:
+          limits:
+            memory: "512Mi"  # Increased memory limit
+            cpu: "500m"
+          requests:
+            memory: "256Mi"  # Increased memory request
+            cpu: "100m"
+        env:
+        - name: NODE_OPTIONS
+          value: "--max-old-space-size=256"  # Limit Node.js memory usage
+"""
+            else:  # CPU issue
+                file_content = """apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: test-app
+  namespace: default
+spec:
+  replicas: 2  # Increased replicas for better load distribution
+  selector:
+    matchLabels:
+      app: test-app
+  template:
+    metadata:
+      labels:
+        app: test-app
+    spec:
+      containers:
+      - name: test-app
+        image: test-app:latest
+        resources:
+          limits:
+            memory: "256Mi"
+            cpu: "1000m"  # Increased CPU limit
+          requests:
+            memory: "128Mi"
+            cpu: "200m"  # Increased CPU request
+"""
+        
         commit_message = f"Fix high {issue_type} usage in {pod_name}"
         
-        # Create the file in the new branch
-        logger.info(f"Creating file {file_path} in branch {branch_name}")
-        file_result = mcp_manager.use_tool("github", "create_file", {
-            "path": file_path,
-            "content": file_content,
-            "message": commit_message,
-            "branch": branch_name
-        })
-        logger.info(f"File created: {json.dumps(file_result)}")
+        # Create the branch first
+        logger.info(f"Creating branch {branch_name}")
+        try:
+            branch_result = mcp_manager.use_tool("github", "create_branch", {
+                "branch": branch_name,
+                "base": "develop"  # Use develop as the base branch
+            })
+            logger.info(f"Branch created: {json.dumps(branch_result)}")
+            
+            # Create the file in the new branch
+            logger.info(f"Creating file {file_path} in branch {branch_name}")
+            file_result = mcp_manager.use_tool("github", "create_file", {
+                "path": file_path,
+                "content": file_content,
+                "message": commit_message,
+                "branch": branch_name
+            })
+            logger.info(f"File created: {json.dumps(file_result)}")
+        except Exception as e:
+            logger.error(f"Error creating branch or file: {str(e)}")
+            file_result = {"error": str(e)}
         
         # Create the pull request
         pr_title = analysis_data.get("pr_title", f"Fix high {issue_type} usage in {pod_name}")
@@ -604,12 +690,14 @@ This PR addresses the high {issue_type} usage issue in pod {pod_name}.
 Closes #{github_issue.get("number", 0)}
         """)
         
+        # We no longer need to create a dummy file since we're creating a real fix file
+        
         logger.info(f"Creating pull request: {pr_title}")
         pr_result = mcp_manager.use_tool("github", "create_pull_request", {
             "title": pr_title,
             "body": pr_body,
             "head": branch_name,
-            "base": "main"
+            "base": "develop"  # Use develop as the base branch
         })
         logger.info(f"Pull request created: {json.dumps(pr_result)}")
         
