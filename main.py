@@ -1,0 +1,1 @@
+Replace the `brute_force_shortest_path` function with a more efficient implementation, such as Dijkstra's algorithm or A* search algorithm.
