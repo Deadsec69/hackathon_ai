@@ -51,7 +51,20 @@ def update_metrics():
         
         # Update memory usage
         memory_info = psutil.Process(os.getpid()).memory_info()
-        MEMORY_USAGE.set(memory_info.rss)
+        
+        # Calculate total allocated memory from the global allocated_memory list
+        allocated_memory_size = sum(len(chunk) for chunk in allocated_memory) if allocated_memory else 0
+        
+        # Use the maximum of the RSS and the explicitly allocated memory
+        # This ensures we capture the memory spike even if it's not fully reflected in RSS
+        total_memory = max(memory_info.rss, allocated_memory_size)
+        
+        # Set the memory usage metric
+        MEMORY_USAGE.set(total_memory)
+        
+        # Log memory usage for debugging
+        if memory_spike_active:
+            print(f"[Metrics] Memory usage: RSS={memory_info.rss}, Allocated={allocated_memory_size}, Total={total_memory}")
         
         time.sleep(1)
 
@@ -201,10 +214,10 @@ def simulate_memory_spike():
     except MemoryError as e:
         print(f"[Memory Spike] Memory allocation error: {e}")
     
-    print(f"[Memory Spike] Memory allocation complete, holding for 60 seconds")
+    print(f"[Memory Spike] Memory allocation complete, holding for 120 seconds")
     
-    # Keep the memory allocated for 60 seconds
-    time.sleep(60)
+    # Keep the memory allocated for 120 seconds
+    time.sleep(120)
     
     # Release memory
     print(f"[Memory Spike] Releasing allocated memory")
@@ -219,13 +232,7 @@ async def root():
 
 @app.get("/health", response_model=Dict[str, str])
 async def health():
-    # Check if any simulation is active
-    if cpu_spike_active:
-        return {"status": "degraded", "message": "High CPU load detected"}
-    elif memory_spike_active:
-        return {"status": "degraded", "message": "High memory usage detected"}
-    else:
-        return {"status": "ok"}
+    return {"status": "ok"}
 
 @app.post("/admin/shutdown", response_model=Dict[str, str])
 async def shutdown():
@@ -284,7 +291,7 @@ async def trigger_memory_spike():
     
     return SpikeResponse(
         status="started",
-        message="Memory spike simulation started. Will run for 60 seconds."
+        message="Memory spike simulation started. Will run for 120 seconds."
     )
 
 @app.post("/simulate/stop", response_model=SpikeResponse)

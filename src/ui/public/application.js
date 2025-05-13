@@ -134,6 +134,15 @@ memoryBtn.addEventListener('click', () => {
     }
 });
 
+// Function to refresh the page after a delay
+function schedulePageRefresh(seconds) {
+    console.log(`Scheduling page refresh in ${seconds} seconds`);
+    setTimeout(() => {
+        console.log('Refreshing page...');
+        window.location.reload();
+    }, seconds * 1000);
+}
+
 // Simulate CPU spike
 function simulateCpuSpike() {
     console.log('Simulating CPU spike');
@@ -142,6 +151,9 @@ function simulateCpuSpike() {
     // Visual feedback while waiting for server response
     cpuBtn.classList.add('active');
     updateStatus('Requesting CPU spike simulation...');
+    
+    // Schedule page refresh after 10 seconds
+    schedulePageRefresh(10);
 }
 
 // Simulate memory spike
@@ -152,6 +164,9 @@ function simulateMemorySpike() {
     // Visual feedback while waiting for server response
     memoryBtn.classList.add('active');
     updateStatus('Requesting memory spike simulation...');
+    
+    // Schedule page refresh after 10 seconds
+    schedulePageRefresh(10);
 }
 
 // Reset simulation state

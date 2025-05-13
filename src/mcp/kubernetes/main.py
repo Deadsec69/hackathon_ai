@@ -91,11 +91,11 @@ async def restart_pod(input_data: PodRestartInput):
     """Restart a pod by actually restarting the Docker container"""
     try:
         # Check if test app is available
-        if not is_test_app_available():
-            return PodRestartOutput(
-                success=False,
-                message="Test application is not available"
-            )
+        # if not is_test_app_available():
+        #     return PodRestartOutput(
+        #         success=False,
+        #         message="Test application is not available"
+        #     )
         
         print(f"[Kubernetes MCP] Restarting pod {input_data.pod_name} in namespace {input_data.namespace}")
         print(f"[Kubernetes MCP] In a real K8s environment, this would terminate and recreate the pod")
@@ -221,8 +221,8 @@ async def get_logs(input_data: LogsInput):
     """Get logs from the test application"""
     try:
         # Check if test app is available
-        if not is_test_app_available():
-            return LogsOutput(logs="Test application is not available")
+        # if not is_test_app_available():
+        #     return LogsOutput(logs="Test application is not available")
         
         # Get status from test app
         response = requests.get(f"{TEST_APP_URL}/status")
@@ -280,8 +280,8 @@ async def get_app_code(input_data: GetAppCodeInput):
     """Get application code from the pod"""
     try:
         # Check if test app is available
-        if not is_test_app_available():
-            return GetAppCodeOutput(code="Test application is not available")
+        # if not is_test_app_available():
+        #     return GetAppCodeOutput(code="Test application is not available")
         
         # In a real implementation, we would get the actual code from the pod
         # For this PoC, we'll read the main.py file from the host filesystem

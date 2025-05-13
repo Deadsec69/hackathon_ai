@@ -301,9 +301,13 @@ function loadAgentStatus() {
         loadAgentLogs();
     }, 2000);
     
-    // Refresh other data less frequently
+    // Refresh service health checks every 10 seconds
     setInterval(() => {
         checkServicesHealth();
+    }, 10000);
+    
+    // Refresh incidents and restart counts every 5 seconds
+    setInterval(() => {
         loadRecentIncidents();
         loadRestartCounts();
     }, 5000);

@@ -68,7 +68,7 @@ llm = ChatAnthropic(model="claude-3-sonnet-20240229", temperature=0)
 
 # Node functions
 def monitor_metrics(state: AgentState) -> AgentState:
-    """Monitor metrics from Prometheus"""
+    """Monitor metrics from Prometheus and API status endpoint"""
     try:
         logger.info("Starting to monitor metrics")
         
@@ -79,12 +79,43 @@ def monitor_metrics(state: AgentState) -> AgentState:
         })
         logger.info(f"CPU metrics result: {json.dumps(cpu_result)}")
         
-        # Query Prometheus for memory metrics
+        # Query Prometheus for memory metrics (we'll override this with the API status endpoint)
         logger.info("Querying Prometheus for memory metrics")
         memory_result = mcp_manager.use_tool("prometheus", "query", {
             "query": "app_memory_usage_bytes"
         })
-        logger.info(f"Memory metrics result: {json.dumps(memory_result)}")
+        logger.info(f"Memory metrics result from Prometheus: {json.dumps(memory_result)}")
+        
+        # Query API status endpoint for more accurate memory metrics
+        logger.info("Querying API status endpoint for accurate memory metrics")
+        try:
+            import requests
+            status_response = requests.get("http://api:8000/status", timeout=5)
+            status_response.raise_for_status()
+            status_data = status_response.json()
+            
+            # Create a memory metric result that matches the format from Prometheus
+            api_memory_value = status_data.get("memory_usage", 0)
+            memory_spike_active = status_data.get("memory_spike_active", False)
+            
+            logger.info(f"API status endpoint memory: {api_memory_value} bytes, memory_spike_active: {memory_spike_active}")
+            
+            # Override the memory result with the API status data
+            if api_memory_value > 0:
+                # Create a memory metric that matches the format from Prometheus
+                # Use the same instance name "test-app:8001" to ensure consistent tracking
+                memory_metric = {
+                    "metric": {"__name__": "app_memory_usage_bytes", "instance": "test-app:8001", "job": "test-app"},
+                    "value": api_memory_value,
+                    "timestamp": int(time.time())
+                }
+                
+                # Replace the memory metrics with our custom one
+                memory_result = {"result": [{"metric": memory_metric["metric"], "value": [int(time.time()), str(api_memory_value)]}]}
+                logger.info(f"Using memory metrics from API status endpoint: {json.dumps(memory_result)}")
+        except Exception as e:
+            logger.error(f"Error querying API status endpoint: {str(e)}")
+            logger.info("Falling back to Prometheus memory metrics")
         
         # Query Prometheus for CPU spike counter
         logger.info("Querying Prometheus for CPU spike counter")
@@ -504,7 +535,7 @@ def analyze_code(state: AgentState) -> AgentState:
         except Exception as e:
             logger.error(f"Error getting application code: {str(e)}")
             app_code = "# Error: Could not retrieve application code"
-        
+        # logger.info(f"------------APP_CODE-------------: {app_code}")
         # Step 1: Use LLM to generate the code fix as plain text
         code_fix_prompt = ChatPromptTemplate.from_template("""
         You are an AI agent tasked with analyzing logs, application code, and providing complete code fixes for Kubernetes pods.
@@ -549,7 +580,7 @@ def analyze_code(state: AgentState) -> AgentState:
         })
         
         logger.info(f"Code fix generated: {len(code_fix_result)} bytes")
-        code_fix_result = code_fix_result.replace("```","").replace("python","")
+        code_fix_result = code_fix_result.replace("```","").replace("python","").replace("json","")
         logger.info(f"Code fix generated: {code_fix_result} ")
         # Step 2: Use LLM to analyze and format the response with the code fix
         analysis_prompt = ChatPromptTemplate.from_template("""
@@ -581,7 +612,6 @@ def analyze_code(state: AgentState) -> AgentState:
         2. Format your response as a JSON object with the following fields:
            - "analysis": Your detailed analysis of the logs, code, and the issue
            - "fix_description": A clear description of the proposed fix
-           - "fix_code": The COMPLETE code fix (use the generated code fix provided above)
            - "fix_file": The file that needs to be modified (e.g., "main.py")
            - "pr_title": A title for the pull request
            - "pr_body": A detailed description for the pull request
@@ -600,12 +630,13 @@ def analyze_code(state: AgentState) -> AgentState:
             "app_code": app_code,
             "code_fix": code_fix_result
         })
-        
+        analysis_result = analysis_result.replace("json","").replace("```","")
         logger.info(f"Analysis result: {len(analysis_result)} bytes")
         logger.info(f"Analysis result: {analysis_result}")
         # Parse the analysis result
         try:
             analysis_data = json.loads(analysis_result)
+            analysis_data['fix_code'] = code_fix_result
             logger.info("Successfully parsed LLM analysis result")
         except json.JSONDecodeError:
             logger.error("Failed to parse LLM analysis result as JSON")

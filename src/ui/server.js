@@ -5,6 +5,7 @@ const socketIo = require('socket.io');
 const axios = require('axios');
 const dotenv = require('dotenv');
 const Anthropic = require('@anthropic-ai/sdk');
+const OpenAI = require('openai');
 
 // Load environment variables
 dotenv.config();
@@ -13,6 +14,11 @@ dotenv.config();
 const anthropic = new Anthropic({
   apiKey: process.env.ANTHROPIC_API_KEY || 'dummy_key_for_development',
 });
+
+// Initialize OpenAI client (commented out)
+// const openai = new OpenAI({
+//   apiKey: process.env.OPENAI_API_KEY || 'dummy_key_for_development',
+// });
 
 // Initialize Express app
 const app = express();
@@ -773,7 +779,7 @@ async function processMessage(message, socketId) {
           content: claudeResponse
         };
       } catch (error) {
-        console.error('Error calling Claude API:', error);
+        console.error('Error calling LLM API:', error);
         return {
           type: 'chat',
           content: `I'm sorry, I don't understand that request. I'm designed to help with monitoring your Kubernetes cluster, showing incidents, and simulating issues. Try asking for "help" to see what I can do.`
@@ -847,7 +853,7 @@ function detectIntent(message) {
 // Store conversation history for each user
 const conversationHistory = new Map();
 
-// Function to call Claude API with conversation memory
+// Function to call LLM API with conversation memory
 async function askClaude(message, socketId) {
   try {
     // Create a system prompt that explains the context
@@ -875,6 +881,26 @@ Keep your responses concise, helpful, and focused on Kubernetes monitoring.`;
     // Limit history to last 10 messages to avoid token limits
     const recentHistory = history.slice(-10);
     
+    // Call OpenAI API with conversation history (commented out)
+    /*
+    const response = await openai.chat.completions.create({
+      model: 'gpt-4o',
+      max_tokens: 1000,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...recentHistory
+      ]
+    });
+
+    // Add assistant response to history
+    const assistantResponse = response.choices[0].message.content;
+    history.push({ role: 'assistant', content: assistantResponse });
+    
+    // Return OpenAI's response
+    return assistantResponse;
+    */
+    
+    // Claude API code
     // Call Claude API with conversation history
     const response = await anthropic.messages.create({
       model: 'claude-3-sonnet-20240229',
@@ -889,7 +915,7 @@ Keep your responses concise, helpful, and focused on Kubernetes monitoring.`;
     // Return Claude's response
     return response.content[0].text;
   } catch (error) {
-    console.error('Error calling Claude API:', error);
+    console.error('Error calling LLM API:', error);
     throw error;
   }
 }

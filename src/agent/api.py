@@ -118,7 +118,7 @@ class SimulateIssueResponse(BaseModel):
 # Global variables
 agent_running = False
 last_run_time = 0
-run_interval = 60  # Run the agent every 60 seconds
+run_interval = 30  # Run the agent every 30 seconds
 auto_run_enabled = True  # Enable automatic agent runs
 
 # Background task to run the agent
