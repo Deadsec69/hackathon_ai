@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Agent Dashboard</title>
+    <title>GOA Playground</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -15,7 +15,8 @@
     <div class="container">
         <div class="sidebar">
             <div class="sidebar-header">
-                <h2>AI Agent Dashboard</h2>
+                <img src="imgs/logo.png" alt="GOA Logo" class="logo">
+                <h2>GOA Playground</h2>
             </div>
             <div class="sidebar-menu">
                 <button id="dashboardBtn" class="active"><i class="fas fa-chart-line"></i> Dashboard</button>
@@ -24,12 +25,12 @@
                 <button id="settingsBtn"><i class="fas fa-cog"></i> Settings</button>
             </div>
             <div class="sidebar-footer">
-                <p>AI Agent v1.0.0</p>
+                <p>GOA v1.0.0</p>
             </div>
         </div>
         <div class="main-content">
             <div class="header">
-                <h1>AI Agent Chat Interface</h1>
+                <h1>Game of Agents Control Center</h1>
                 <div class="status-indicator">
                     <span id="statusDot" class="status-dot"></span>
                     <span id="statusText">Connecting...</span>
@@ -78,16 +79,16 @@
                         </div>
                     </div>
                     <div class="dashboard-card">
+                        <h3>Quick Actions</h3>
+                        <div class="quick-actions">
+                            <button id="stopSimulationBtn" class="action-button danger">Restart Pod</button>
+                            <button id="viewIncidentsBtn" class="action-button">View Resolve Past Issues</button>
+                        </div>
+                    </div>
+                    <div class="dashboard-card agent-logs-card">
                         <h3>Agent Logs</h3>
                         <div id="agentLogs" class="agent-logs">
                             <p>Loading agent logs...</p>
-                        </div>
-                    </div>
-                    <div class="dashboard-card">
-                        <h3>Quick Actions</h3>
-                        <div class="quick-actions">
-                            <button id="simulateCpuBtn" class="action-button">Calculate All Trading Paths</button>
-                            <button id="simulateMemoryBtn" class="action-button">Fetch All Trades</button>
                         </div>
                     </div>
                 </div>
@@ -181,7 +182,7 @@
             
             <div class="chat-container">
                 <div class="chat-header" id="chatHeader">
-                    <h3>AI Assistant</h3>
+                    <h3>GOA Assistant</h3>
                     <button class="chat-toggle" id="chatToggle">
                         <i class="fas fa-chevron-up"></i>
                     </button>

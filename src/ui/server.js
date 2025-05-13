@@ -274,7 +274,12 @@ app.get('/api/agent/logs', async (req, res) => {
   }
 });
 
-// Serve index.html for all routes
+// Serve application.html for /application route
+app.get('/application', (req, res) => {
+  res.sendFile(path.join(__dirname, 'public', 'application.html'));
+});
+
+// Serve index.html for all other routes
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, 'public', 'index.html'));
 });

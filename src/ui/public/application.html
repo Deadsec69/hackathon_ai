@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>GOA Application Code</title>
+    <link rel="stylesheet" href="application.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+</head>
+<body>
+    <div class="ocean">
+        <div class="wave"></div>
+        <div class="wave"></div>
+    </div>
+    
+    <div class="container">
+        <div class="logo-container">
+            <img src="imgs/logo.png" alt="GOA Logo" class="logo">
+        </div>
+        <header>
+            <div class="circuit-overlay"></div>
+            <h1 class="title">GOA</h1>
+            <div class="subtitle">GAME OF AGENTS</div>
+        </header>
+        
+        <section class="about-section">
+            <h2>Introduction</h2>
+            <p>This is a demo application code where we mimic calculating optimal transaction costs and fetching trading data. These are high CPU and memory-based operations respectively, so when they are triggered, they will create a CPU spike and memory spike. Our agent will monitor them and try to make a quick remedy solution or optimize the algorithm via PR creating issues.</p>
+        </section>
+        
+        <section class="actions-section">
+            <div class="card">
+                <div class="card-icon">
+                    <i class="fas fa-microchip"></i>
+                </div>
+                <div class="card-content">
+                    <h3>CPU Intensive Operation</h3>
+                    <p>This operation calculates optimal transaction costs across multiple trading paths, requiring significant CPU resources.</p>
+                    <button id="cpuBtn" class="action-button">
+                        <span class="button-text">Calculate Optimal Transaction Cost</span>
+                        <span class="button-icon"><i class="fas fa-arrow-right"></i></span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card">
+                <div class="card-icon">
+                    <i class="fas fa-memory"></i>
+                </div>
+                <div class="card-content">
+                    <h3>Memory Intensive Operation</h3>
+                    <p>This operation fetches and processes large volumes of trading data, consuming significant memory resources.</p>
+                    <button id="memoryBtn" class="action-button">
+                        <span class="button-text">Fetch All Trading Data</span>
+                        <span class="button-icon"><i class="fas fa-arrow-right"></i></span>
+                    </button>
+                </div>
+            </div>
+        </section>
+        
+        <section class="monitoring-section">
+            <h2>Agent Monitoring</h2>
+            <div class="monitoring-visual">
+                <div class="agent-icon">
+                    <i class="fas fa-robot"></i>
+                </div>
+                <div class="monitoring-arrows">
+                    <div class="arrow arrow-left">
+                        <i class="fas fa-long-arrow-alt-right"></i>
+                    </div>
+                    <div class="arrow arrow-right">
+                        <i class="fas fa-long-arrow-alt-left"></i>
+                    </div>
+                </div>
+                <div class="metrics">
+                    <div class="metric cpu">
+                        <div class="metric-icon">
+                            <i class="fas fa-microchip"></i>
+                        </div>
+                        <div class="metric-bar">
+                            <div class="metric-fill"></div>
+                        </div>
+                        <div class="metric-label">CPU</div>
+                    </div>
+                    <div class="metric memory">
+                        <div class="metric-icon">
+                            <i class="fas fa-memory"></i>
+                        </div>
+                        <div class="metric-bar">
+                            <div class="metric-fill"></div>
+                        </div>
+                        <div class="metric-label">Memory</div>
+                    </div>
+                </div>
+            </div>
+            <div id="status" class="status">Agent is monitoring system resources</div>
+        </section>
+        
+        <footer>
+            <p>© 2025 Game of Agents (GOA) Team. All rights reserved.</p>
+            <a href="/" class="back-link">Back to Dashboard</a>
+        </footer>
+    </div>
+    
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="application.js"></script>
+</body>
+</html>

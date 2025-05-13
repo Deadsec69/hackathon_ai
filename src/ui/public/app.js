@@ -162,6 +162,7 @@ incidentsBtn.addEventListener('click', () => switchView('incidents'));
 simulateBtn.addEventListener('click', () => switchView('simulate'));
 settingsBtn.addEventListener('click', () => switchView('settings'));
 viewAllIncidentsBtn.addEventListener('click', () => switchView('incidents'));
+viewIncidentsBtn.addEventListener('click', () => switchView('incidents'));
 
 function switchView(view) {
     // Hide all views
@@ -350,12 +351,20 @@ function displayAgentLogs(logs) {
                 specialClass = 'completion';
             }
             
+            // Determine component class
+            let componentClass = '';
+            if (component === 'agent') {
+                componentClass = 'agent-component';
+            } else if (component === 'agent.mcp_client') {
+                componentClass = 'agent-mcp-component';
+            }
+            
             // Create the log entry element
             const logEntry = document.createElement('div');
             logEntry.className = `log-entry ${levelClass} ${specialClass}`;
             logEntry.innerHTML = `
                 <span class="log-timestamp">${timestamp}</span>
-                <span class="log-component">${component}</span>
+                <span class="log-component ${componentClass}">${component}</span>
                 <span class="log-level">${log.level}</span>
                 <span class="log-message">${message}</span>
             `;
@@ -614,6 +623,7 @@ function stopSimulation() {
 // Add event listeners to simulation buttons if they exist
 if (simulateCpuBtn) simulateCpuBtn.addEventListener('click', () => simulateIssue('cpu'));
 if (simulateMemoryBtn) simulateMemoryBtn.addEventListener('click', () => simulateIssue('memory'));
+if (stopSimulationBtn) stopSimulationBtn.addEventListener('click', stopSimulation);
 
 if (simulateCpuBtnView) simulateCpuBtnView.addEventListener('click', () => simulateIssue('cpu'));
 if (simulateMemoryBtnView) simulateMemoryBtnView.addEventListener('click', () => simulateIssue('memory'));
