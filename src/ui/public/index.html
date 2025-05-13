@@ -3,9 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Agent Chat Interface</title>
+    <title>AI Agent Dashboard</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <meta name="description" content="AI Agent Dashboard for monitoring and managing Kubernetes applications">
 </head>
 <body>
     <div class="container">
@@ -82,9 +86,8 @@
                     <div class="dashboard-card">
                         <h3>Quick Actions</h3>
                         <div class="quick-actions">
-                            <button id="simulateCpuBtn" class="action-button">Simulate CPU Spike</button>
-                            <button id="simulateMemoryBtn" class="action-button">Simulate Memory Spike</button>
-                            <button id="stopSimulationBtn" class="action-button">Restart Pod</button>
+                            <button id="simulateCpuBtn" class="action-button">Calculate All Trading Paths</button>
+                            <button id="simulateMemoryBtn" class="action-button">Fetch All Trades</button>
                         </div>
                     </div>
                 </div>
@@ -120,14 +123,14 @@
                 </div>
                 <div class="simulate-grid">
                     <div class="simulate-card">
-                        <h3>CPU Spike</h3>
-                        <p>Simulate a CPU spike to test the agent's response.</p>
-                        <button id="simulateCpuBtnView" class="action-button">Simulate CPU Spike</button>
+                        <h3>Trading Paths</h3>
+                        <p>Calculate all trading paths to test the agent's response.</p>
+                        <button id="simulateCpuBtnView" class="action-button">Calculate All Trading Paths</button>
                     </div>
                     <div class="simulate-card">
-                        <h3>Memory Spike</h3>
-                        <p>Simulate a memory spike to test the agent's response.</p>
-                        <button id="simulateMemoryBtnView" class="action-button">Simulate Memory Spike</button>
+                        <h3>Trade Fetching</h3>
+                        <p>Fetch all trades to test the agent's response.</p>
+                        <button id="simulateMemoryBtnView" class="action-button">Fetch All Trades</button>
                     </div>
                     <div class="simulate-card">
                         <h3>Restart Pod</h3>
@@ -177,7 +180,16 @@
             </div>
             
             <div class="chat-container">
+                <div class="chat-header" id="chatHeader">
+                    <h3>AI Assistant</h3>
+                    <button class="chat-toggle" id="chatToggle">
+                        <i class="fas fa-chevron-up"></i>
+                    </button>
+                </div>
                 <div id="chatMessages" class="chat-messages"></div>
+                <div class="chat-actions">
+                    <button id="chatResetPodBtn" class="action-button danger">Reset Pod</button>
+                </div>
                 <div class="chat-input">
                     <input type="text" id="messageInput" placeholder="Type a message...">
                     <button id="sendBtn"><i class="fas fa-paper-plane"></i></button>

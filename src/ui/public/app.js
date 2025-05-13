@@ -7,6 +7,10 @@ const messageInput = document.getElementById('messageInput');
 const sendBtn = document.getElementById('sendBtn');
 const statusDot = document.getElementById('statusDot');
 const statusText = document.getElementById('statusText');
+const chatHeader = document.getElementById('chatHeader');
+const chatToggle = document.getElementById('chatToggle');
+const chatContainer = document.querySelector('.chat-container');
+const chatResetPodBtn = document.getElementById('chatResetPodBtn');
 
 // View elements
 const dashboardBtn = document.getElementById('dashboardBtn');
@@ -51,6 +55,11 @@ const cpuThresholdInput = document.getElementById('cpuThresholdInput');
 const memoryThresholdInput = document.getElementById('memoryThresholdInput');
 const saveSettingsBtn = document.getElementById('saveSettingsBtn');
 
+// Chat toggle functionality
+chatHeader.addEventListener('click', () => {
+    chatContainer.classList.toggle('open');
+});
+
 // Socket.IO connection status
 socket.on('connect', () => {
     statusDot.classList.add('connected');
@@ -63,6 +72,14 @@ socket.on('connect', () => {
     
     // Add welcome message
     addMessage('system', 'Welcome to the Kubernetes Monitoring Assistant! I can help you monitor your applications, simulate issues, and manage your Kubernetes cluster. Type "help" to see what I can do.');
+    
+    // Open chat on connect
+    chatContainer.classList.add('open');
+    
+    // Auto-close chat after 5 seconds
+    setTimeout(() => {
+        chatContainer.classList.remove('open');
+    }, 5000);
 });
 
 socket.on('disconnect', () => {
@@ -573,25 +590,14 @@ function displayRestartCounts(counts) {
 
 // Update simulation buttons based on API health and simulation status
 function updateSimulationButtons(isApiHealthy, isSimulationRunning) {
-    // Get all simulation buttons
-    const simulationButtons = [
-        simulateCpuBtn,
-        simulateMemoryBtn,
-        simulateCpuBtnView,
-        simulateMemoryBtnView,
-        stopSimulationBtn,
-        stopSimulationBtnView
-    ];
-    
     // Disable CPU and Memory simulation buttons when API is unhealthy or a simulation is running
-    simulateCpuBtn.disabled = !isApiHealthy || isSimulationRunning;
-    simulateMemoryBtn.disabled = !isApiHealthy || isSimulationRunning;
-    simulateCpuBtnView.disabled = !isApiHealthy || isSimulationRunning;
-    simulateMemoryBtnView.disabled = !isApiHealthy || isSimulationRunning;
+    if (simulateCpuBtn) simulateCpuBtn.disabled = !isApiHealthy || isSimulationRunning;
+    if (simulateMemoryBtn) simulateMemoryBtn.disabled = !isApiHealthy || isSimulationRunning;
+    if (simulateCpuBtnView) simulateCpuBtnView.disabled = !isApiHealthy || isSimulationRunning;
+    if (simulateMemoryBtnView) simulateMemoryBtnView.disabled = !isApiHealthy || isSimulationRunning;
     
     // Always enable Restart Pod buttons
-    stopSimulationBtn.disabled = false;
-    stopSimulationBtnView.disabled = false; // Always enable the view button too
+    if (stopSimulationBtnView) stopSimulationBtnView.disabled = false;
     
     console.log(`Simulation buttons updated: API Healthy=${isApiHealthy}, Simulation Running=${isSimulationRunning}`);
 }
@@ -605,13 +611,22 @@ function stopSimulation() {
     socket.emit('stop simulation');
 }
 
-simulateCpuBtn.addEventListener('click', () => simulateIssue('cpu'));
-simulateMemoryBtn.addEventListener('click', () => simulateIssue('memory'));
-stopSimulationBtn.addEventListener('click', stopSimulation);
+// Add event listeners to simulation buttons if they exist
+if (simulateCpuBtn) simulateCpuBtn.addEventListener('click', () => simulateIssue('cpu'));
+if (simulateMemoryBtn) simulateMemoryBtn.addEventListener('click', () => simulateIssue('memory'));
 
-simulateCpuBtnView.addEventListener('click', () => simulateIssue('cpu'));
-simulateMemoryBtnView.addEventListener('click', () => simulateIssue('memory'));
-stopSimulationBtnView.addEventListener('click', stopSimulation);
+if (simulateCpuBtnView) simulateCpuBtnView.addEventListener('click', () => simulateIssue('cpu'));
+if (simulateMemoryBtnView) simulateMemoryBtnView.addEventListener('click', () => simulateIssue('memory'));
+if (stopSimulationBtnView) stopSimulationBtnView.addEventListener('click', stopSimulation);
+
+// Chat Reset Pod button
+chatResetPodBtn.addEventListener('click', () => {
+    stopSimulation();
+    // Open chat if it's closed
+    chatContainer.classList.add('open');
+    // Add message to chat
+    addMessage('system', 'Restarting pod...');
+});
 
 socket.on('simulation response', (response) => {
     if (response.type === 'success') {
