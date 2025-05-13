@@ -8,10 +8,10 @@ import sys
 from typing import Dict, List, Any, Optional, Union, TypedDict, Annotated, Literal
 from dataclasses import asdict
 from dotenv import load_dotenv
-# import openai
-import anthropic
-from langchain_anthropic import ChatAnthropic
-# from langchain_openai import ChatOpenAI
+import openai
+# import anthropic
+# from langchain_anthropic import ChatAnthropic
+from langchain_openai import ChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema import StrOutputParser
 from langchain.schema.runnable import RunnablePassthrough
@@ -32,15 +32,15 @@ logger = logging.getLogger("agent")
 # Load environment variables
 load_dotenv()
 
-# Initialize Anthropic client
-anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
-if not anthropic_api_key:
-    raise ValueError("ANTHROPIC_API_KEY environment variable not set")
+# Initialize Anthropic client (commented out)
+# anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
+# if not anthropic_api_key:
+#     raise ValueError("ANTHROPIC_API_KEY environment variable not set")
 
-# Initialize OpenAI client (commented out)
-# openai_api_key = os.environ.get("OPENAI_API_KEY")
-# if not openai_api_key:
-#     raise ValueError("OPENAI_API_KEY environment variable not set")
+# Initialize OpenAI client
+openai_api_key = os.environ.get("OPENAI_API_KEY")
+if not openai_api_key:
+    raise ValueError("OPENAI_API_KEY environment variable not set")
 
 # Constants
 MAX_RESTARTS_PER_DAY = int(os.environ.get("MAX_RESTARTS_PER_DAY", "10"))
@@ -60,11 +60,11 @@ class AgentState(TypedDict):
     error: Optional[str]
 
 # LLM setup
-# OpenAI setup (commented out)
-# llm = ChatOpenAI(model="gpt-4o", temperature=0)
+# Claude setup (commented out)
+# llm = ChatAnthropic(model="claude-3-sonnet-20240229", temperature=0)
 
-# Claude setup
-llm = ChatAnthropic(model="claude-3-sonnet-20240229", temperature=0)
+# OpenAI setup
+llm = ChatOpenAI(model="gpt-4o", temperature=0)
 
 # Node functions
 def monitor_metrics(state: AgentState) -> AgentState:

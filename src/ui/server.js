@@ -4,21 +4,21 @@ const path = require('path');
 const socketIo = require('socket.io');
 const axios = require('axios');
 const dotenv = require('dotenv');
-const Anthropic = require('@anthropic-ai/sdk');
+// const Anthropic = require('@anthropic-ai/sdk');
 const OpenAI = require('openai');
 
 // Load environment variables
 dotenv.config();
 
-// Initialize Claude client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || 'dummy_key_for_development',
-});
-
-// Initialize OpenAI client (commented out)
-// const openai = new OpenAI({
-//   apiKey: process.env.OPENAI_API_KEY || 'dummy_key_for_development',
+// Initialize Claude client (commented out)
+// const anthropic = new Anthropic({
+//   apiKey: process.env.ANTHROPIC_API_KEY || 'dummy_key_for_development',
 // });
+
+// Initialize OpenAI client
+const openai = new OpenAI({
+  apiKey: process.env.OPENAI_API_KEY || 'dummy_key_for_development',
+});
 
 // Initialize Express app
 const app = express();
@@ -772,11 +772,11 @@ async function processMessage(message, socketId) {
     case 'unknown':
     default:
       try {
-        // Use Claude API for unknown intents
-        const claudeResponse = await askClaude(message, socketId);
+        // Use OpenAI API for unknown intents
+        const llmResponse = await askLLM(message, socketId);
         return {
           type: 'chat',
-          content: claudeResponse
+          content: llmResponse
         };
       } catch (error) {
         console.error('Error calling LLM API:', error);
@@ -854,7 +854,7 @@ function detectIntent(message) {
 const conversationHistory = new Map();
 
 // Function to call LLM API with conversation memory
-async function askClaude(message, socketId) {
+async function askLLM(message, socketId) {
   try {
     // Create a system prompt that explains the context
     const systemPrompt = `You are an AI assistant for a Kubernetes monitoring system. 
@@ -881,8 +881,7 @@ Keep your responses concise, helpful, and focused on Kubernetes monitoring.`;
     // Limit history to last 10 messages to avoid token limits
     const recentHistory = history.slice(-10);
     
-    // Call OpenAI API with conversation history (commented out)
-    /*
+    // Call OpenAI API with conversation history
     const response = await openai.chat.completions.create({
       model: 'gpt-4o',
       max_tokens: 1000,
@@ -898,9 +897,9 @@ Keep your responses concise, helpful, and focused on Kubernetes monitoring.`;
     
     // Return OpenAI's response
     return assistantResponse;
-    */
     
-    // Claude API code
+    // Claude API code (commented out)
+    /*
     // Call Claude API with conversation history
     const response = await anthropic.messages.create({
       model: 'claude-3-sonnet-20240229',
@@ -914,6 +913,7 @@ Keep your responses concise, helpful, and focused on Kubernetes monitoring.`;
     
     // Return Claude's response
     return response.content[0].text;
+    */
   } catch (error) {
     console.error('Error calling LLM API:', error);
     throw error;
