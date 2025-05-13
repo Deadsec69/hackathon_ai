@@ -4,21 +4,40 @@ const path = require('path');
 const socketIo = require('socket.io');
 const axios = require('axios');
 const dotenv = require('dotenv');
-const Anthropic = require('@anthropic-ai/sdk');
-const OpenAI = require('openai');
+// const Anthropic = require('@anthropic-ai/sdk');
+// const OpenAI = require('openai');
+// const { OpenAIClient, AzureKeyCredential } = require('@azure/openai');
+const litellm = require('litellm');
 
 // Load environment variables
 dotenv.config();
 
-// Initialize Claude client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || 'dummy_key_for_development',
-});
+// Initialize Claude client (commented out)
+// const anthropic = new Anthropic({
+//   apiKey: process.env.ANTHROPIC_API_KEY || 'dummy_key_for_development',
+// });
 
 // Initialize OpenAI client (commented out)
 // const openai = new OpenAI({
 //   apiKey: process.env.OPENAI_API_KEY || 'dummy_key_for_development',
 // });
+
+// Initialize Azure OpenAI client (commented out)
+// const azureApiKey = process.env.AZURE_OPENAI_API_KEY || 'dummy_key_for_development';
+// const azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT || 'https://your-resource-name.openai.azure.com';
+// const azureDeployment = process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4o';
+// 
+// const azureOpenAI = new OpenAIClient(
+//   azureEndpoint,
+//   new AzureKeyCredential(azureApiKey)
+// );
+
+// Initialize LiteLLM with Azure OpenAI
+const azureApiKey = process.env.AZURE_OPENAI_API_KEY || 'dummy_key_for_development';
+const azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT || 'https://your-resource-name.openai.azure.com';
+const azureDeployment = process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4o';
+
+// LiteLLM doesn't need global initialization - it's configured per request
 
 // Initialize Express app
 const app = express();
@@ -772,11 +791,11 @@ async function processMessage(message, socketId) {
     case 'unknown':
     default:
       try {
-        // Use Claude API for unknown intents
-        const claudeResponse = await askClaude(message, socketId);
+        // Use OpenAI API for unknown intents
+        const llmResponse = await askLLM(message, socketId);
         return {
           type: 'chat',
-          content: claudeResponse
+          content: llmResponse
         };
       } catch (error) {
         console.error('Error calling LLM API:', error);
@@ -854,7 +873,7 @@ function detectIntent(message) {
 const conversationHistory = new Map();
 
 // Function to call LLM API with conversation memory
-async function askClaude(message, socketId) {
+async function askLLM(message, socketId) {
   try {
     // Create a system prompt that explains the context
     const systemPrompt = `You are an AI assistant for a Kubernetes monitoring system. 
@@ -881,6 +900,26 @@ Keep your responses concise, helpful, and focused on Kubernetes monitoring.`;
     // Limit history to last 10 messages to avoid token limits
     const recentHistory = history.slice(-10);
     
+    // Call LiteLLM with Azure OpenAI
+    const response = await litellm.completion({
+      model: `azure/${azureDeployment}`,
+      messages: [
+        { role: 'system', content: systemPrompt },
+        ...recentHistory
+      ],
+      max_tokens: 1000,
+      api_key: azureApiKey,
+      api_base: azureEndpoint,
+      api_version: "2023-05-15"
+    });
+
+    // Add assistant response to history
+    const assistantResponse = response.choices[0].message.content;
+    history.push({ role: 'assistant', content: assistantResponse });
+    
+    // Return LiteLLM's response
+    return assistantResponse;
+    
     // Call OpenAI API with conversation history (commented out)
     /*
     const response = await openai.chat.completions.create({
@@ -900,7 +939,8 @@ Keep your responses concise, helpful, and focused on Kubernetes monitoring.`;
     return assistantResponse;
     */
     
-    // Claude API code
+    // Claude API code (commented out)
+    /*
     // Call Claude API with conversation history
     const response = await anthropic.messages.create({
       model: 'claude-3-sonnet-20240229',
@@ -914,6 +954,7 @@ Keep your responses concise, helpful, and focused on Kubernetes monitoring.`;
     
     // Return Claude's response
     return response.content[0].text;
+    */
   } catch (error) {
     console.error('Error calling LLM API:', error);
     throw error;

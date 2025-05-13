@@ -8,10 +8,12 @@ import sys
 from typing import Dict, List, Any, Optional, Union, TypedDict, Annotated, Literal
 from dataclasses import asdict
 from dotenv import load_dotenv
-# import openai
-import anthropic
-from langchain_anthropic import ChatAnthropic
-# from langchain_openai import ChatOpenAI
+# import openai  # Used for both OpenAI and Azure OpenAI
+# import anthropic
+# from langchain_anthropic import ChatAnthropic
+# from langchain_openai import ChatOpenAI, AzureChatOpenAI
+from litellm import completion
+from litellm.llms.langchain import LangChainChat
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema import StrOutputParser
 from langchain.schema.runnable import RunnablePassthrough
@@ -32,15 +34,29 @@ logger = logging.getLogger("agent")
 # Load environment variables
 load_dotenv()
 
-# Initialize Anthropic client
-anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
-if not anthropic_api_key:
-    raise ValueError("ANTHROPIC_API_KEY environment variable not set")
+# Initialize Anthropic client (commented out)
+# anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
+# if not anthropic_api_key:
+#     raise ValueError("ANTHROPIC_API_KEY environment variable not set")
 
 # Initialize OpenAI client (commented out)
 # openai_api_key = os.environ.get("OPENAI_API_KEY")
 # if not openai_api_key:
 #     raise ValueError("OPENAI_API_KEY environment variable not set")
+
+# Initialize Azure OpenAI client
+azure_api_key = os.environ.get("AZURE_OPENAI_API_KEY")
+if not azure_api_key:
+    raise ValueError("AZURE_OPENAI_API_KEY environment variable not set")
+
+azure_endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
+if not azure_endpoint:
+    raise ValueError("AZURE_OPENAI_ENDPOINT environment variable not set")
+
+azure_deployment = os.environ.get("AZURE_OPENAI_DEPLOYMENT") or "gpt-4o"
+
+# Configure LiteLLM with Azure OpenAI
+# No need to configure global settings as LiteLLM handles this per request
 
 # Constants
 MAX_RESTARTS_PER_DAY = int(os.environ.get("MAX_RESTARTS_PER_DAY", "10"))
@@ -60,11 +76,29 @@ class AgentState(TypedDict):
     error: Optional[str]
 
 # LLM setup
+# Claude setup (commented out)
+# llm = ChatAnthropic(model="claude-3-sonnet-20240229", temperature=0)
+
 # OpenAI setup (commented out)
 # llm = ChatOpenAI(model="gpt-4o", temperature=0)
 
-# Claude setup
-llm = ChatAnthropic(model="claude-3-sonnet-20240229", temperature=0)
+# Azure OpenAI setup (commented out)
+# llm = AzureChatOpenAI(
+#     azure_deployment=azure_deployment,
+#     openai_api_version="2023-05-15",
+#     openai_api_key=azure_api_key,
+#     azure_endpoint=azure_endpoint,
+#     temperature=0
+# )
+
+# LiteLLM setup with Azure OpenAI
+llm = LangChainChat(
+    model="azure/" + azure_deployment,
+    api_key=azure_api_key,
+    api_base=azure_endpoint,
+    api_version="2023-05-15",
+    temperature=0
+)
 
 # Node functions
 def monitor_metrics(state: AgentState) -> AgentState:
