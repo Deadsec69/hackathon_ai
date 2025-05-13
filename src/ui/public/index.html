@@ -53,11 +53,17 @@
                             </div>
                             <div class="status-item">
                                 <span class="status-label">Prometheus:</span>
-                                <span id="prometheusHealth" class="status-value"><span class="status-dot"></span> Checking...</span>
+                                <span id="prometheusHealth" class="status-value">
+                                    <span class="status-dot"></span> 
+                                    <a href="http://localhost:9090" target="_blank" class="service-link">Checking...</a>
+                                </span>
                             </div>
                             <div class="status-item">
                                 <span class="status-label">Grafana:</span>
-                                <span id="grafanaHealth" class="status-value"><span class="status-dot"></span> Checking...</span>
+                                <span id="grafanaHealth" class="status-value">
+                                    <span class="status-dot"></span> 
+                                    <a href="http://localhost:3000" target="_blank" class="service-link">Checking...</a>
+                                </span>
                             </div>
                             <div class="status-item">
                                 <span class="status-label">Last Check:</span>
@@ -189,7 +195,17 @@
                 </div>
                 <div id="chatMessages" class="chat-messages"></div>
                 <div class="chat-actions">
-                    <button id="chatResetPodBtn" class="action-button danger">Reset Pod</button>
+                    <button id="chatHelpBtn" class="action-button info">
+                        <i class="fas fa-question-circle"></i> Help
+                    </button>
+                    <div id="helpSubMenu" class="help-submenu">
+                        <button id="chatResetPodBtn" class="action-button danger">
+                            <i class="fas fa-sync-alt"></i> Restart Pod
+                        </button>
+                        <button id="chatShowIncidentsBtn" class="action-button warning">
+                            <i class="fas fa-exclamation-triangle"></i> Show Last Incidents
+                        </button>
+                    </div>
                 </div>
                 <div class="chat-input">
                     <input type="text" id="messageInput" placeholder="Type a message...">

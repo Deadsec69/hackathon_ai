@@ -79,7 +79,7 @@ app.get('/api/health', async (req, res) => {
           memory: `${memoryUsageMB} MB`
         }
       });
-    } else if (memoryUsage > 50000000) {
+    } else if (memoryUsage > 60000000) {
       return res.status(200).send({ 
         status: 'warning', 
         message: 'High memory usage detected',
@@ -308,7 +308,17 @@ io.on('connection', (socket) => {
   // Handle simulate issue
   socket.on('simulate issue', async (data) => {
     try {
-      const response = await axios.post(`${API_URL}/api/simulate/issue`, {
+      // Determine the correct endpoint based on issue type
+      let endpoint = '';
+      if (data.issue_type === 'cpu') {
+        endpoint = `http://api:8000/simulate/cpu`;
+      } else if (data.issue_type === 'memory') {
+        endpoint = `http://api:8000/simulate/memory`;
+      } else {
+        endpoint = `${API_URL}/api/simulate/issue`;
+      }
+      
+      const response = await axios.post(endpoint, {
         issue_type: data.issue_type
       });
       
@@ -415,11 +425,17 @@ io.on('connection', (socket) => {
     try {
       const response = await axios.post(`${API_URL}/api/incidents`, filters);
       
+      // Send incidents to the dashboard or incidents view
       socket.emit('incidents response', {
         type: 'success',
         incidents: response.data.incidents,
         total: response.data.total
       });
+      
+      // If this request came from the chat interface (limit is 3), also send to chat
+      if (filters && filters.limit === 3) {
+        socket.emit('chat incidents', response.data.incidents);
+      }
     } catch (error) {
       console.error('Error getting incidents:', error);
       socket.emit('incidents response', {
@@ -479,7 +495,7 @@ async function processMessage(message, socketId) {
           - "Show me recent incidents"
           - "How many pod restarts today?"
           - "What's the status of the services?"
-          - "Restart the server please"
+          - "Restart the pod please"
         `
       };
       
@@ -492,7 +508,7 @@ async function processMessage(message, socketId) {
     case 'simulate_cpu':
       try {
         // Make the API call to simulate CPU spike
-        const response = await axios.post(`${API_URL}/simulate/cpu`);
+        const response = await axios.post(`http://api:8000/simulate/cpu`);
         
         // Update simulation status
         simulationStatus.running = true;
@@ -526,7 +542,7 @@ async function processMessage(message, socketId) {
     case 'simulate_memory':
       try {
         // Make the API call to simulate memory spike
-        const response = await axios.post(`${API_URL}/simulate/memory`);
+        const response = await axios.post(`http://api:8000/simulate/memory`);
         
         // Update simulation status
         simulationStatus.running = true;
@@ -632,7 +648,7 @@ async function processMessage(message, socketId) {
           
           return {
             type: 'action',
-            content: `I've restarted the server successfully. ${response.data.message || ''}`
+            content: `I've restarted the pod successfully. ${response.data.message || ''}`
           };
         } catch (apiError) {
           // If the API endpoint doesn't exist, simulate a restart
@@ -800,9 +816,9 @@ function detectIntent(message) {
     return 'run_agent';
   }
   
-  // Server restart intent
-  if (/\b(restart|reboot|reload|reset)\b.+\b(server|service|application|app|system)\b/.test(message) ||
-      /\b(server|service|application|app|system).+\b(restart|reboot|reload|reset)\b/.test(message)) {
+  // Server/Pod restart intent
+  if (/\b(restart|reboot|reload|reset)\b.+\b(server|service|application|app|system|pod)\b/.test(message) ||
+      /\b(server|service|application|app|system|pod).+\b(restart|reboot|reload|reset)\b/.test(message)) {
     return 'server_restart';
   }
   

@@ -47,7 +47,7 @@ MAX_RESTARTS_PER_DAY = int(os.environ.get("MAX_RESTARTS_PER_DAY", "10"))
 ANALYSIS_THRESHOLD = int(os.environ.get("ANALYSIS_THRESHOLD", "4"))
 # ANALYSIS_THRESHOLD = 1
 CPU_THRESHOLD = 10  # CPU usage percentage threshold (lowered to 10% for testing)
-MEMORY_THRESHOLD = 500 * 1024 * 1024  # Memory threshold in bytes (500 MB)
+MEMORY_THRESHOLD = 600000000  # Memory threshold in bytes (500 MB)
 
 # State definition
 class AgentState(TypedDict):

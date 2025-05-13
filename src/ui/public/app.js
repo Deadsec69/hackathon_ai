@@ -205,7 +205,7 @@ function checkServicesHealth() {
         .then(data => {
             console.log('API status check response:', data);
             // API is healthy if CPU usage is below 10% and memory usage is below 50,000,000 bytes
-            const isHealthy = data.cpu_usage <= 10 && data.memory_usage <= 50000000 && 
+            const isHealthy = data.cpu_usage <= 10 && data.memory_usage <= 60000000 && 
                              !data.cpu_spike_active && !data.memory_spike_active;
             updateServiceHealth(apiHealth, isHealthy);
             
@@ -255,16 +255,32 @@ function checkServicesHealth() {
 
 function updateServiceHealth(element, isHealthy) {
     const statusDot = element.querySelector('.status-dot');
+    const serviceLink = element.querySelector('.service-link');
+    
     if (isHealthy) {
         statusDot.classList.add('connected');
-        element.textContent = '';
-        element.appendChild(statusDot);
-        element.appendChild(document.createTextNode(' Healthy'));
+        
+        if (serviceLink) {
+            // If there's a service link, update just the link text
+            serviceLink.textContent = 'Healthy';
+        } else {
+            // Otherwise update the whole element
+            element.textContent = '';
+            element.appendChild(statusDot);
+            element.appendChild(document.createTextNode(' Healthy'));
+        }
     } else {
         statusDot.classList.remove('connected');
-        element.textContent = '';
-        element.appendChild(statusDot);
-        element.appendChild(document.createTextNode(' Unhealthy'));
+        
+        if (serviceLink) {
+            // If there's a service link, update just the link text
+            serviceLink.textContent = 'Unhealthy';
+        } else {
+            // Otherwise update the whole element
+            element.textContent = '';
+            element.appendChild(statusDot);
+            element.appendChild(document.createTextNode(' Unhealthy'));
+        }
     }
 }
 
@@ -629,6 +645,22 @@ if (simulateCpuBtnView) simulateCpuBtnView.addEventListener('click', () => simul
 if (simulateMemoryBtnView) simulateMemoryBtnView.addEventListener('click', () => simulateIssue('memory'));
 if (stopSimulationBtnView) stopSimulationBtnView.addEventListener('click', stopSimulation);
 
+// Chat Help button and submenu
+const chatHelpBtn = document.getElementById('chatHelpBtn');
+const helpSubMenu = document.getElementById('helpSubMenu');
+const chatShowIncidentsBtn = document.getElementById('chatShowIncidentsBtn');
+
+chatHelpBtn.addEventListener('click', () => {
+    helpSubMenu.classList.toggle('active');
+});
+
+// Close submenu when clicking outside
+document.addEventListener('click', (event) => {
+    if (!chatHelpBtn.contains(event.target) && !helpSubMenu.contains(event.target)) {
+        helpSubMenu.classList.remove('active');
+    }
+});
+
 // Chat Reset Pod button
 chatResetPodBtn.addEventListener('click', () => {
     stopSimulation();
@@ -636,6 +668,33 @@ chatResetPodBtn.addEventListener('click', () => {
     chatContainer.classList.add('open');
     // Add message to chat
     addMessage('system', 'Restarting pod...');
+    // Hide submenu
+    helpSubMenu.classList.remove('active');
+});
+
+// Chat Show Incidents button
+chatShowIncidentsBtn.addEventListener('click', () => {
+    // Open chat if it's closed
+    chatContainer.classList.add('open');
+    // Add message to chat
+    addMessage('system', 'Showing recent incidents...');
+    // Load and display recent incidents in chat
+    socket.emit('get incidents', { limit: 3 });
+    // Hide submenu
+    helpSubMenu.classList.remove('active');
+});
+
+// Handle incidents for chat display
+socket.on('chat incidents', (incidents) => {
+    if (incidents.length === 0) {
+        addMessage('system', 'No recent incidents found.');
+    } else {
+        incidents.forEach(incident => {
+            const timestamp = new Date(incident.timestamp * 1000).toLocaleString();
+            const message = `${incident.type.toUpperCase()} issue in ${incident.pod_name} (${timestamp})`;
+            addMessage('info', message);
+        });
+    }
 });
 
 socket.on('simulation response', (response) => {
@@ -654,7 +713,7 @@ socket.on('simulation response', (response) => {
                 .then(response => response.json())
                 .then(data => {
                     const isSimulationRunning = data.cpu_spike_active || data.memory_spike_active;
-                    const isApiHealthy = data.cpu_usage <= 10 && data.memory_usage <= 50000000 && 
+                    const isApiHealthy = data.cpu_usage <= 10 && data.memory_usage <= 60000000 && 
                                         !data.cpu_spike_active && !data.memory_spike_active;
                     updateSimulationButtons(isApiHealthy, isSimulationRunning);
                 })

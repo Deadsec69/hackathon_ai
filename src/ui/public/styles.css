@@ -376,6 +376,18 @@ body {
     align-items: center;
 }
 
+.service-link {
+    color: var(--text-color);
+    text-decoration: none;
+    transition: color var(--transition-normal);
+    margin-left: 4px;
+}
+
+.service-link:hover {
+    color: var(--primary-light);
+    text-decoration: underline;
+}
+
 .recent-incidents, .restart-counts, .agent-logs {
     max-height: 220px;
     overflow-y: auto;
@@ -954,14 +966,69 @@ body {
 .chat-actions {
     padding: var(--spacing-sm) var(--spacing-md);
     display: flex;
-    justify-content: center;
+    flex-direction: column;
+    align-items: center;
     border-top: 1px solid var(--border-color);
     background-color: rgba(255, 255, 255, 0.03);
+    position: relative;
 }
 
 .chat-actions .action-button {
     width: 100%;
     max-width: 200px;
+}
+
+.help-submenu {
+    display: none;
+    position: absolute;
+    top: -100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background-color: var(--card-bg-color);
+    border-radius: var(--border-radius-md);
+    box-shadow: var(--shadow-lg);
+    padding: var(--spacing-sm);
+    border: 1px solid var(--border-color);
+    width: 90%;
+    max-width: 250px;
+    z-index: 10;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+}
+
+.help-submenu.active {
+    display: flex;
+}
+
+.help-submenu::after {
+    content: '';
+    position: absolute;
+    bottom: -10px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 10px solid transparent;
+    border-right: 10px solid transparent;
+    border-top: 10px solid var(--card-bg-color);
+}
+
+#chatHelpBtn {
+    background-color: var(--info-color);
+}
+
+#chatHelpBtn:hover {
+    background-color: #0c7697;
+}
+
+#chatShowIncidentsBtn {
+    background-color: #f9a825; /* Brighter yellow color */
+    color: #333; /* Darker text for better contrast */
+    font-weight: 600;
+}
+
+#chatShowIncidentsBtn:hover {
+    background-color: #f57f17; /* Darker orange-yellow on hover */
 }
 
 .chat-input {
