@@ -8,12 +8,8 @@ import sys
 from typing import Dict, List, Any, Optional, Union, TypedDict, Annotated, Literal
 from dataclasses import asdict
 from dotenv import load_dotenv
-import openai  # Used for both OpenAI and Azure OpenAI
-# import anthropic
-# from langchain_anthropic import ChatAnthropic
-from langchain_openai import ChatOpenAI, AzureChatOpenAI
-# from litellm import completion
-# from litellm.llms.langchain import LangChainChat
+import openai  # Used for Azure OpenAI
+from langchain_openai import AzureChatOpenAI
 from langchain.prompts import ChatPromptTemplate
 from langchain.schema import StrOutputParser
 from langchain.schema.runnable import RunnablePassthrough
@@ -39,15 +35,6 @@ from sub_agents.vision import create_dashboard_annotation, update_dashboard_pane
 # Load environment variables
 load_dotenv()
 
-# Initialize Anthropic client (commented out)
-# anthropic_api_key = os.environ.get("ANTHROPIC_API_KEY")
-# if not anthropic_api_key:
-#     raise ValueError("ANTHROPIC_API_KEY environment variable not set")
-
-# Initialize OpenAI client (commented out)
-# openai_api_key = os.environ.get("OPENAI_API_KEY")
-# if not openai_api_key:
-#     raise ValueError("OPENAI_API_KEY environment variable not set")
 
 # Initialize Azure OpenAI client
 azure_api_key = os.environ.get("AZURE_OPENAI_API_KEY")
@@ -81,14 +68,7 @@ class AgentState(TypedDict):
     response: Dict[str, Any]
     error: Optional[str]
 
-# LLM setup
-# Claude setup (commented out)
-# llm = ChatAnthropic(model="claude-3-sonnet-20240229", temperature=0)
-
-# OpenAI setup (commented out)
-# llm = ChatOpenAI(model="gpt-4o", temperature=0)
-
-# Azure OpenAI setup
+# LLM setup - Azure OpenAI
 llm = AzureChatOpenAI(
     azure_deployment=azure_deployment,
     openai_api_version=azure_api_version,
@@ -96,16 +76,6 @@ llm = AzureChatOpenAI(
     azure_endpoint=azure_endpoint,
     temperature=0
 )
-
-# LiteLLM setup with Anthropic only (commented out)
-# llm = LangChainChat(
-#     model="anthropic/claude-3-sonnet-20240229",
-#     api_key=anthropic_api_key,
-#     temperature=0
-# )
-
-# Claude setup (commented out)
-# llm = ChatAnthropic(model="claude-3-sonnet-20240229", temperature=0)
 
 # Node functions
 def monitor_metrics(state: AgentState) -> AgentState:

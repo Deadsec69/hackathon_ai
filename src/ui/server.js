@@ -4,18 +4,12 @@ const path = require('path');
 const socketIo = require('socket.io');
 const axios = require('axios');
 const dotenv = require('dotenv');
-const Anthropic = require('@anthropic-ai/sdk');
 // const OpenAI = require('openai');
-// const { OpenAIClient, AzureKeyCredential } = require('@azure/openai');
+const { OpenAIClient, AzureKeyCredential } = require('@azure/openai');
 // const litellm = require('litellm');
 
 // Load environment variables
 dotenv.config();
-
-// Initialize Claude client (commented out)
-// const anthropic = new Anthropic({
-//   apiKey: process.env.ANTHROPIC_API_KEY || 'dummy_key_for_development',
-// });
 
 // Initialize OpenAI client (commented out)
 // const openai = new OpenAI({
@@ -33,33 +27,17 @@ console.log('Endpoint:', azureEndpoint);
 console.log('Deployment:', azureDeployment);
 console.log('API Version:', azureApiVersion);
 
-// Check if Azure OpenAI credentials are available
-const useAzureOpenAI = azureApiKey && azureEndpoint && azureDeployment;
-
+// Initialize Azure OpenAI client
 let azureOpenAI;
-if (useAzureOpenAI) {
-  const { OpenAIClient, AzureKeyCredential } = require('@azure/openai');
+if (azureApiKey && azureEndpoint && azureDeployment) {
   azureOpenAI = new OpenAIClient(
     azureEndpoint,
     new AzureKeyCredential(azureApiKey)
   );
   console.log('Azure OpenAI client initialized successfully');
 } else {
-  console.log('Azure OpenAI credentials not available, falling back to Claude');
+  console.error('Azure OpenAI credentials not available. Please check your environment variables.');
 }
-
-// Initialize Claude client if Azure OpenAI is not available
-const anthropic = useAzureOpenAI ? null : new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || 'dummy_key_for_development',
-});
-
-// Initialize LiteLLM with Anthropic only (commented out)
-// const azureApiKey = process.env.AZURE_OPENAI_API_KEY || 'dummy_key_for_development';
-// const azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT || 'https://your-resource-name.openai.azure.com';
-// const azureDeployment = process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4o';
-const anthropicApiKey = process.env.ANTHROPIC_API_KEY || 'dummy_key_for_development';
-
-// LiteLLM doesn't need global initialization - it's configured per request
 
 // Initialize Express app
 const app = express();
@@ -960,59 +938,6 @@ Keep your responses concise, helpful, and focused on Kubernetes monitoring.`;
     
     // Return Azure OpenAI's response
     return assistantResponse;
-    
-    // Use Anthropic directly (commented out)
-    /*
-    const response = await anthropic.messages.create({
-      model: 'claude-3-sonnet-20240229',
-      max_tokens: 1000,
-      system: systemPrompt,
-      messages: recentHistory
-    });
-
-    // Add assistant response to history
-    const assistantResponse = response.content[0].text;
-    history.push({ role: 'assistant', content: assistantResponse });
-    
-    // Return Anthropic's response
-    return assistantResponse;
-    */
-    
-    // Call OpenAI API with conversation history (commented out)
-    /*
-    const response = await openai.chat.completions.create({
-      model: 'gpt-4o',
-      max_tokens: 1000,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        ...recentHistory
-      ]
-    });
-
-    // Add assistant response to history
-    const assistantResponse = response.choices[0].message.content;
-    history.push({ role: 'assistant', content: assistantResponse });
-    
-    // Return OpenAI's response
-    return assistantResponse;
-    */
-    
-    // Claude API code (commented out)
-    /*
-    // Call Claude API with conversation history
-    const response = await anthropic.messages.create({
-      model: 'claude-3-sonnet-20240229',
-      max_tokens: 1000,
-      system: systemPrompt,
-      messages: recentHistory
-    });
-
-    // Add assistant response to history
-    history.push({ role: 'assistant', content: response.content[0].text });
-    
-    // Return Claude's response
-    return response.content[0].text;
-    */
   } catch (error) {
     console.error('Error calling LLM API:', error);
     throw error;
