@@ -1,0 +1,75 @@
+
+# Brute force shortest path algorithm (CPU intensive)
+def brute_force_shortest_path(graph, start, end, max_depth=10):
+    """
+    Find the shortest path between start and end nodes using brute force.
+    This is extremely CPU-intensive for large graphs.
+    
+    Args:
+        graph: Dictionary representing the graph {node: {neighbor: distance}}
+        start: Starting node
+        end: Target node
+        max_depth: Maximum path length to consider (to avoid infinite recursion)
+    
+    Returns:
+        Tuple of (shortest_path, distance)
+    """
+    best_path = None
+    best_distance = float('inf')
+    
+    def explore_paths(current_node, path, distance, depth):
+        nonlocal best_path, best_distance
+        
+        # Base cases
+        if current_node == end:
+            if distance < best_distance:
+                best_distance = distance
+                best_path = path.copy()
+            return
+        
+        if depth >= max_depth:
+            return
+            
+        # Explore all neighbors not yet in the path
+        if current_node in graph:
+            for neighbor, edge_distance in graph[current_node].items():
+                if neighbor not in path:  # Avoid cycles
+                    path.append(neighbor)
+                    explore_paths(neighbor, path, distance + edge_distance, depth + 1)
+                    path.pop()  # Backtrack
+    
+    # Start the recursive exploration
+    explore_paths(start, [start], 0, 0)
+    
+    return best_path, best_distance
+
+# CPU intensive task for a single thread
+def cpu_intensive_task():
+    print(f"[CPU Task] Starting CPU-intensive graph algorithm task")
+    iteration = 0
+    while cpu_spike_active:
+        iteration += 1
+        # Generate a new random graph for each iteration
+        graph_size = 20  # 20 nodes creates significant CPU load
+        graph = generate_large_graph(graph_size)
+        
+        # Pick random start and end nodes
+        start_node = random.randint(0, graph_size-1)
+        end_node = random.randint(0, graph_size-1)
+        while end_node == start_node:
+            end_node = random.randint(0, graph_size-1)
+        
+        print(f"[CPU Task] Iteration {iteration}: Running brute force shortest path algorithm on graph with {graph_size} nodes from node {start_node} to {end_node}")
+        
+        # Find shortest path using brute force (CPU intensive)
+        start_time = time.time()
+        path, distance = brute_force_shortest_path(graph, start_node, end_node)
+        elapsed = time.time() - start_time
+        
+        if path:
+            print(f"[CPU Task] Found path with {len(path)} nodes and distance {distance} in {elapsed:.2f} seconds")
+        else:
+            print(f"[CPU Task] No path found after {elapsed:.2f} seconds")
+        
+        # Add a sleep to reduce CPU usage
+        time.sleep(0.1)
