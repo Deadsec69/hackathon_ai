@@ -363,21 +363,31 @@ function displayAgentLogs(logs) {
             const component = log.component || 'agent';
             const message = log.message || '';
             
-            // Determine if this log should have a special theme
+            // Get agent type from the log or extract it from component
+            const agentType = log.agentType || (component.includes('.') ? component.split('.')[1] : 'system');
+            
+            // Determine if this log should have a special theme based on agent type
             let specialClass = '';
-            if (message.includes('Remed') || message.includes('remed')) {
+            if (agentType === 'medic' || message.includes('Remed') || message.includes('remed')) {
                 specialClass = 'remediation';
+            } else if (agentType === 'smith') {
+                specialClass = 'code-analysis';
+            } else if (agentType === 'seer') {
+                specialClass = 'monitoring';
+            } else if (agentType === 'forge') {
+                specialClass = 'incident';
+            } else if (agentType === 'vision') {
+                specialClass = 'dashboard';
+            } else if (agentType === 'herald') {
+                specialClass = 'notification';
+            } else if (agentType === 'oracle') {
+                specialClass = 'decision';
             } else if (message.includes('Agent run completed')) {
                 specialClass = 'completion';
             }
             
             // Determine component class
-            let componentClass = '';
-            if (component === 'agent') {
-                componentClass = 'agent-component';
-            } else if (component === 'agent.mcp_client') {
-                componentClass = 'agent-mcp-component';
-            }
+            let componentClass = `agent-${agentType}`;
             
             // Create the log entry element
             const logEntry = document.createElement('div');

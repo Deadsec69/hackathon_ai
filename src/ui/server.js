@@ -5,7 +5,9 @@ const socketIo = require('socket.io');
 const axios = require('axios');
 const dotenv = require('dotenv');
 const Anthropic = require('@anthropic-ai/sdk');
-const OpenAI = require('openai');
+// const OpenAI = require('openai');
+// const { OpenAIClient, AzureKeyCredential } = require('@azure/openai');
+// const litellm = require('litellm');
 
 // Load environment variables
 dotenv.config();
@@ -19,6 +21,24 @@ const anthropic = new Anthropic({
 // const openai = new OpenAI({
 //   apiKey: process.env.OPENAI_API_KEY || 'dummy_key_for_development',
 // });
+
+// Initialize Azure OpenAI client (commented out)
+// const azureApiKey = process.env.AZURE_OPENAI_API_KEY || 'dummy_key_for_development';
+// const azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT || 'https://your-resource-name.openai.azure.com';
+// const azureDeployment = process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4o';
+// 
+// const azureOpenAI = new OpenAIClient(
+//   azureEndpoint,
+//   new AzureKeyCredential(azureApiKey)
+// );
+
+// Initialize LiteLLM with Anthropic only (commented out)
+// const azureApiKey = process.env.AZURE_OPENAI_API_KEY || 'dummy_key_for_development';
+// const azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT || 'https://your-resource-name.openai.azure.com';
+// const azureDeployment = process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4o';
+const anthropicApiKey = process.env.ANTHROPIC_API_KEY || 'dummy_key_for_development';
+
+// LiteLLM doesn't need global initialization - it's configured per request
 
 // Initialize Express app
 const app = express();
@@ -160,7 +180,8 @@ const MAX_LOGS = 100; // Maximum number of logs to keep in memory
 function parseAgentLog(logLine) {
   try {
     // Example log line: agent-1  | 2025-05-12 21:43:49,779 - agent - INFO - Starting agent run
-    const regex = /agent-\d+\s+\|\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+-\s+(agent(?:\.mcp_client)?)\s+-\s+(INFO|WARNING|ERROR|DEBUG)\s+-\s+(.+)/;
+    // Updated regex to catch specialized agent loggers (agent.seer, agent.medic, etc.)
+    const regex = /agent-\d+\s+\|\s+(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}:\d{2},\d{3})\s+-\s+(agent(?:\.\w+)?)\s+-\s+(INFO|WARNING|ERROR|DEBUG)\s+-\s+(.+)/;
     const match = logLine.match(regex);
     
     if (match) {
@@ -168,11 +189,18 @@ function parseAgentLog(logLine) {
       // Convert timestamp to ISO format
       const date = new Date(timestamp.replace(',', '.'));
       
+      // Extract agent type from component (e.g., "agent.seer" -> "seer")
+      let agentType = "system";
+      if (component.includes('.')) {
+        agentType = component.split('.')[1];
+      }
+      
       return {
         timestamp: date.toISOString(),
         component,
         level,
-        message
+        message,
+        agentType
       };
     }
     return null;
@@ -185,7 +213,8 @@ function parseAgentLog(logLine) {
 // Function to add a new log to the in-memory cache
 function addAgentLog(logLine) {
   const parsedLog = parseAgentLog(logLine);
-  if (parsedLog && (parsedLog.component === 'agent' || parsedLog.component === 'agent.mcp_client') && parsedLog.level === 'INFO') {
+  // Accept logs from all agent components (agent, agent.seer, agent.medic, etc.)
+  if (parsedLog && parsedLog.component.startsWith('agent') && parsedLog.level === 'INFO') {
     agentLogs.unshift(parsedLog); // Add to the beginning of the array (newest first)
     
     // Trim the logs array if it exceeds the maximum size
@@ -219,11 +248,17 @@ app.get('/api/agent/logs', async (req, res) => {
         
         // Process each log from the agent server
         response.data.logs.forEach(log => {
-          // Only include INFO logs from agent or agent.mcp_client
-          if (log.level === 'INFO' && (log.component === 'agent' || log.component === 'agent.mcp_client')) {
+          // Include INFO logs from all agent components (agent, agent.seer, agent.medic, etc.)
+          if (log.level === 'INFO' && log.component.startsWith('agent')) {
             // Convert timestamp to ISO format
             const timestamp = new Date(log.timestamp * 1000).toISOString();
             const logTime = new Date(timestamp).getTime();
+            
+            // Extract agent type from component (e.g., "agent.seer" -> "seer")
+            let agentType = "system";
+            if (log.component.includes('.')) {
+              agentType = log.component.split('.')[1];
+            }
             
             // Only add logs that are newer than what we already have
             if (logTime > latestTimestamp) {
@@ -232,7 +267,8 @@ app.get('/api/agent/logs', async (req, res) => {
                 timestamp: timestamp,
                 component: log.component,
                 level: log.level,
-                message: log.message
+                message: log.message,
+                agentType: agentType
               });
               
               newLogsCount++;
@@ -772,11 +808,11 @@ async function processMessage(message, socketId) {
     case 'unknown':
     default:
       try {
-        // Use Claude API for unknown intents
-        const claudeResponse = await askClaude(message, socketId);
+        // Use OpenAI API for unknown intents
+        const llmResponse = await askLLM(message, socketId);
         return {
           type: 'chat',
-          content: claudeResponse
+          content: llmResponse
         };
       } catch (error) {
         console.error('Error calling LLM API:', error);
@@ -854,7 +890,7 @@ function detectIntent(message) {
 const conversationHistory = new Map();
 
 // Function to call LLM API with conversation memory
-async function askClaude(message, socketId) {
+async function askLLM(message, socketId) {
   try {
     // Create a system prompt that explains the context
     const systemPrompt = `You are an AI assistant for a Kubernetes monitoring system. 
@@ -881,6 +917,21 @@ Keep your responses concise, helpful, and focused on Kubernetes monitoring.`;
     // Limit history to last 10 messages to avoid token limits
     const recentHistory = history.slice(-10);
     
+    // Use Anthropic directly
+    const response = await anthropic.messages.create({
+      model: 'claude-3-sonnet-20240229',
+      max_tokens: 1000,
+      system: systemPrompt,
+      messages: recentHistory
+    });
+
+    // Add assistant response to history
+    const assistantResponse = response.content[0].text;
+    history.push({ role: 'assistant', content: assistantResponse });
+    
+    // Return Anthropic's response
+    return assistantResponse;
+    
     // Call OpenAI API with conversation history (commented out)
     /*
     const response = await openai.chat.completions.create({
@@ -900,7 +951,8 @@ Keep your responses concise, helpful, and focused on Kubernetes monitoring.`;
     return assistantResponse;
     */
     
-    // Claude API code
+    // Claude API code (commented out)
+    /*
     // Call Claude API with conversation history
     const response = await anthropic.messages.create({
       model: 'claude-3-sonnet-20240229',
@@ -914,6 +966,7 @@ Keep your responses concise, helpful, and focused on Kubernetes monitoring.`;
     
     // Return Claude's response
     return response.content[0].text;
+    */
   } catch (error) {
     console.error('Error calling LLM API:', error);
     throw error;

@@ -474,6 +474,126 @@ body {
     opacity: 0.5;
 }
 
+.log-entry.code-analysis {
+    border-left-color: #06d6a0;
+    background-color: rgba(6, 214, 160, 0.1);
+    color: #06d6a0;
+    font-weight: 600;
+    position: relative;
+    overflow: hidden;
+}
+
+.log-entry.code-analysis::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 100%;
+    background-color: #06d6a0;
+    opacity: 0.5;
+}
+
+.log-entry.monitoring {
+    border-left-color: #00b4d8;
+    background-color: rgba(0, 180, 216, 0.1);
+    color: #00b4d8;
+    font-weight: 600;
+    position: relative;
+    overflow: hidden;
+}
+
+.log-entry.monitoring::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 100%;
+    background-color: #00b4d8;
+    opacity: 0.5;
+}
+
+.log-entry.incident {
+    border-left-color: #ffd166;
+    background-color: rgba(255, 209, 102, 0.1);
+    color: #e6a800;
+    font-weight: 600;
+    position: relative;
+    overflow: hidden;
+}
+
+.log-entry.incident::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 100%;
+    background-color: #ffd166;
+    opacity: 0.5;
+}
+
+.log-entry.dashboard {
+    border-left-color: #118ab2;
+    background-color: rgba(17, 138, 178, 0.1);
+    color: #118ab2;
+    font-weight: 600;
+    position: relative;
+    overflow: hidden;
+}
+
+.log-entry.dashboard::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 100%;
+    background-color: #118ab2;
+    opacity: 0.5;
+}
+
+.log-entry.notification {
+    border-left-color: #9d4edd;
+    background-color: rgba(157, 78, 221, 0.1);
+    color: #9d4edd;
+    font-weight: 600;
+    position: relative;
+    overflow: hidden;
+}
+
+.log-entry.notification::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 100%;
+    background-color: #9d4edd;
+    opacity: 0.5;
+}
+
+.log-entry.decision {
+    border-left-color: #ff9e00;
+    background-color: rgba(255, 158, 0, 0.1);
+    color: #ff9e00;
+    font-weight: 600;
+    position: relative;
+    overflow: hidden;
+}
+
+.log-entry.decision::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 5px;
+    height: 100%;
+    background-color: #ff9e00;
+    opacity: 0.5;
+}
+
 .log-entry.completion {
     border-left-color: var(--success-color);
     background-color: rgba(6, 214, 160, 0.1);
@@ -518,6 +638,47 @@ body {
 .log-component.agent-mcp-component {
     color: #4cc9f0;
     background-color: rgba(76, 201, 240, 0.15);
+}
+
+/* Specialized agent component styling */
+.log-component.agent-seer {
+    color: #00b4d8;
+    background-color: rgba(0, 180, 216, 0.15);
+}
+
+.log-component.agent-medic {
+    color: #ef476f;
+    background-color: rgba(239, 71, 111, 0.15);
+}
+
+.log-component.agent-forge {
+    color: #ffd166;
+    background-color: rgba(255, 209, 102, 0.15);
+}
+
+.log-component.agent-smith {
+    color: #06d6a0;
+    background-color: rgba(6, 214, 160, 0.15);
+}
+
+.log-component.agent-vision {
+    color: #118ab2;
+    background-color: rgba(17, 138, 178, 0.15);
+}
+
+.log-component.agent-herald {
+    color: #9d4edd;
+    background-color: rgba(157, 78, 221, 0.15);
+}
+
+.log-component.agent-oracle {
+    color: #ff9e00;
+    background-color: rgba(255, 158, 0, 0.15);
+}
+
+.log-component.agent-system {
+    color: #7ee8fa;
+    background-color: rgba(126, 232, 250, 0.15);
 }
 
 .log-level {

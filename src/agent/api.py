@@ -12,8 +12,15 @@ from dataclasses import asdict
 from agent import run_agent, get_incidents, get_restart_counts
 from incident_store import incident_store, Incident
 
-# Get the agent logger
+# Get the agent loggers
 logger = logging.getLogger("agent")
+seer_logger = logging.getLogger("agent.seer")
+medic_logger = logging.getLogger("agent.medic")
+forge_logger = logging.getLogger("agent.forge")
+smith_logger = logging.getLogger("agent.smith")
+vision_logger = logging.getLogger("agent.vision")
+herald_logger = logging.getLogger("agent.herald")
+oracle_logger = logging.getLogger("agent.oracle")
 
 # Create a custom handler to store logs in memory
 class MemoryLogHandler(logging.Handler):
@@ -35,9 +42,16 @@ class MemoryLogHandler(logging.Handler):
         if len(self.logs) > self.max_logs:
             self.logs = self.logs[-self.max_logs:]
 
-# Create and add the memory handler to the agent logger
+# Create and add the memory handler to all agent loggers
 memory_handler = MemoryLogHandler()
 logger.addHandler(memory_handler)
+seer_logger.addHandler(memory_handler)
+medic_logger.addHandler(memory_handler)
+forge_logger.addHandler(memory_handler)
+smith_logger.addHandler(memory_handler)
+vision_logger.addHandler(memory_handler)
+herald_logger.addHandler(memory_handler)
+oracle_logger.addHandler(memory_handler)
 
 # Initialize FastAPI app
 app = FastAPI(title="AI Agent API", description="API for the AI agent")
