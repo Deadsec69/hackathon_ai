@@ -11,12 +11,21 @@
 
 KubeGuardian is an intelligent AI agent system that monitors applications running on Kubernetes, performs health checks, and implements automated fixes. It uses Azure OpenAI to analyze issues, make decisions, and take appropriate actions to maintain system health.
 
+### Demo Video
+
+**GitHub View:**
 https://github.com/user-attachments/assets/f25f8f4e-4d04-479b-9ae0-5dac452dd2ed
 
+**HTML Video (GitHub and some Markdown renderers):**
 <video width="640" height="360" controls>
   <source src="demo_video.mp4" type="video/mp4">
   Your browser does not support the video tag.
 </video>
+
+**Azure DevOps Compatible:**
+![Demo Video](demo_video.mp4)
+
+> **Note:** For Azure DevOps, you may need to upload the video file to your ADO repository first. Then, depending on your ADO settings, you might need to use a relative path like `./demo_video.mp4` or an absolute path to the file in your repository.
 
 ## Features
 
