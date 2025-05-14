@@ -11,7 +11,7 @@
 
 KubeGuardian is an intelligent AI agent system that monitors applications running on Kubernetes, performs health checks, and implements automated fixes. It uses Azure OpenAI to analyze issues, make decisions, and take appropriate actions to maintain system health.
 
-![Demo Video](demo_video.mp4)
+![Demo Video](demo_video.mov)
 
 ## Features
 
