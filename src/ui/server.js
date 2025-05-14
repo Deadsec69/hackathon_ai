@@ -12,25 +12,46 @@ const Anthropic = require('@anthropic-ai/sdk');
 // Load environment variables
 dotenv.config();
 
-// Initialize Claude client
-const anthropic = new Anthropic({
-  apiKey: process.env.ANTHROPIC_API_KEY || 'dummy_key_for_development',
-});
+// Initialize Claude client (commented out)
+// const anthropic = new Anthropic({
+//   apiKey: process.env.ANTHROPIC_API_KEY || 'dummy_key_for_development',
+// });
 
 // Initialize OpenAI client (commented out)
 // const openai = new OpenAI({
 //   apiKey: process.env.OPENAI_API_KEY || 'dummy_key_for_development',
 // });
 
-// Initialize Azure OpenAI client (commented out)
-// const azureApiKey = process.env.AZURE_OPENAI_API_KEY || 'dummy_key_for_development';
-// const azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT || 'https://your-resource-name.openai.azure.com';
-// const azureDeployment = process.env.AZURE_OPENAI_DEPLOYMENT || 'gpt-4o';
-// 
-// const azureOpenAI = new OpenAIClient(
-//   azureEndpoint,
-//   new AzureKeyCredential(azureApiKey)
-// );
+// Initialize Azure OpenAI client
+const azureApiKey = process.env.AZURE_OPENAI_API_KEY;
+const azureEndpoint = process.env.AZURE_OPENAI_ENDPOINT;
+const azureDeployment = process.env.AZURE_OPENAI_DEPLOYMENT;
+const azureApiVersion = process.env.AZURE_OPENAI_API_VERSION;
+
+console.log('Azure OpenAI Configuration:');
+console.log('Endpoint:', azureEndpoint);
+console.log('Deployment:', azureDeployment);
+console.log('API Version:', azureApiVersion);
+
+// Check if Azure OpenAI credentials are available
+const useAzureOpenAI = azureApiKey && azureEndpoint && azureDeployment;
+
+let azureOpenAI;
+if (useAzureOpenAI) {
+  const { OpenAIClient, AzureKeyCredential } = require('@azure/openai');
+  azureOpenAI = new OpenAIClient(
+    azureEndpoint,
+    new AzureKeyCredential(azureApiKey)
+  );
+  console.log('Azure OpenAI client initialized successfully');
+} else {
+  console.log('Azure OpenAI credentials not available, falling back to Claude');
+}
+
+// Initialize Claude client if Azure OpenAI is not available
+const anthropic = useAzureOpenAI ? null : new Anthropic({
+  apiKey: process.env.ANTHROPIC_API_KEY || 'dummy_key_for_development',
+});
 
 // Initialize LiteLLM with Anthropic only (commented out)
 // const azureApiKey = process.env.AZURE_OPENAI_API_KEY || 'dummy_key_for_development';
@@ -917,7 +938,31 @@ Keep your responses concise, helpful, and focused on Kubernetes monitoring.`;
     // Limit history to last 10 messages to avoid token limits
     const recentHistory = history.slice(-10);
     
-    // Use Anthropic directly
+    // Prepare messages for Azure OpenAI
+    const messages = [
+      { role: 'system', content: systemPrompt },
+      ...recentHistory
+    ];
+    
+    // Use Azure OpenAI
+    const response = await azureOpenAI.getChatCompletions(
+      azureDeployment,
+      messages,
+      {
+        maxTokens: 1000,
+        temperature: 0.7
+      }
+    );
+
+    // Add assistant response to history
+    const assistantResponse = response.choices[0].message.content;
+    history.push({ role: 'assistant', content: assistantResponse });
+    
+    // Return Azure OpenAI's response
+    return assistantResponse;
+    
+    // Use Anthropic directly (commented out)
+    /*
     const response = await anthropic.messages.create({
       model: 'claude-3-sonnet-20240229',
       max_tokens: 1000,
@@ -931,6 +976,7 @@ Keep your responses concise, helpful, and focused on Kubernetes monitoring.`;
     
     // Return Anthropic's response
     return assistantResponse;
+    */
     
     // Call OpenAI API with conversation history (commented out)
     /*
